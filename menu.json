@@ -49,7 +49,14 @@
       "id": "cakes",
       "title": "Cakes",
       "note": "Made to order. Tell me the occasion and how many it's for.",
-      "items": []
+      "items": [
+        {
+          "name": "Chocolate Cake",
+          "description": "Rich chocolate layer cake.",
+          "price": "450",
+          "image": ""
+        }
+      ]
     }
   ]
 }

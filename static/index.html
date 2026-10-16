@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>The Kitchen Manager</title>
+<link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+  <!-- ============ LOGIN SCREEN ============ -->
+  <div id="login-screen" class="screen">
+    <div class="login-card">
+      <div class="logo-mark">🍳</div>
+      <h1>The Kitchen</h1>
+      <p class="login-sub">Your shop, your way.</p>
+      <form id="login-form" autocomplete="off">
+        <label for="user">Username</label>
+        <input id="user" name="user" type="text" autocomplete="username" placeholder="Your username" required>
+        <label for="pass">Password</label>
+        <input id="pass" name="pass" type="password" autocomplete="current-password" placeholder="Your password" required>
+        <button type="submit" id="login-btn">Open my kitchen</button>
+        <p id="login-error" class="error" hidden>Wrong username or password.</p>
+      </form>
+    </div>
+  </div>
+
+  <!-- ============ CHAT SCREEN ============ -->
+  <div id="chat-screen" class="screen" hidden>
+    <header class="topbar">
+      <div class="topbar-left">
+        <div class="avatar">🍳</div>
+        <div>
+          <div class="topbar-name">The Kitchen Manager</div>
+          <div class="topbar-status"><span class="dot"></span> here to help</div>
+        </div>
+      </div>
+      <button id="logout-btn" class="ghost-btn" title="Log out">Log out</button>
+    </header>
+
+    <!-- Shortcut chips -->
+    <div id="shortcuts" class="shortcuts"></div>
+
+    <!-- Messages -->
+    <main id="messages" class="messages"></main>
+
+    <!-- Composer -->
+    <footer class="composer">
+      <div class="composer-row">
+        <textarea id="input" rows="1" placeholder="Tell me what you need…" enterkeyhint="send"></textarea>
+        <button id="send-btn" class="send-btn" aria-label="Send">➤</button>
+      </div>
+      <div class="composer-hint">I can add dishes, change prices, update your page, and more.</div>
+    </footer>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
