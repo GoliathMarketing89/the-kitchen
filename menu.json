@@ -1,0 +1,49 @@
+{
+  "shop": {
+    "name": "The Kitchen",
+    "tagline": "Homemade food, cooked to order for friends.",
+    "order_whatsapp": "",
+    "pickup_note": "Message to order, then we agree a pickup time.",
+    "currency": "THB"
+  },
+  "sections": [
+    {
+      "id": "weekly",
+      "title": "Weekly Menu",
+      "note": "Fresh each week \u2014 message to check what's available today.",
+      "items": [
+        {
+          "name": "Lasagna Tray",
+          "description": "Layered beef lasagna, feeds 4-6. Ready for your oven.",
+          "price": "650",
+          "image": ""
+        },
+        {
+          "name": "Pad Thai",
+          "description": "Classic stir-fried noodles with prawns.",
+          "price": "120",
+          "image": ""
+        }
+      ]
+    },
+    {
+      "id": "christmas",
+      "title": "Christmas Pre-order",
+      "note": "Pre-order for Christmas. These need notice \u2014 message early.",
+      "items": [
+        {
+          "name": "Roast Turkey (whole)",
+          "description": "Order by Dec 15.",
+          "price": "1800",
+          "image": ""
+        }
+      ]
+    },
+    {
+      "id": "cakes",
+      "title": "Cakes",
+      "note": "Made to order. Tell me the occasion and how many it's for.",
+      "items": []
+    }
+  ]
+}

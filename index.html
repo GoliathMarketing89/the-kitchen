@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Kitchen</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background:#faf6f0; color:#2b2b2b; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; line-height:1.5; }
+  .wrap { max-width:720px; margin:0 auto; padding:32px 20px 56px; }
+  header { text-align:center; margin-bottom:36px; }
+  header h1 { font-size:2rem; font-weight:600; letter-spacing:-0.02em; }
+  header p { color:#6b6b6b; margin-top:8px; }
+  .pickup { text-align:center; color:#6b6b6b; font-size:.95rem; margin-bottom:32px; padding:12px; background:#fff; border-radius:12px; }
+  section { margin-bottom:40px; }
+  .sec-head h2 { font-size:1.35rem; font-weight:600; position:relative; padding-bottom:10px; }
+  .sec-head h2::after { content:""; position:absolute; left:0; bottom:0; width:36px; height:3px; background:#b5651d; border-radius:2px; }
+  .sec-note { color:#6b6b6b; font-size:.92rem; margin:6px 0 16px; }
+  .grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  @media (max-width:480px) { .grid { grid-template-columns:1fr; } }
+  .card { background:#fff; border-radius:14px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,.06); display:flex; flex-direction:column; }
+  .photo img { width:100%; height:150px; object-fit:cover; display:block; }
+  .card-body { padding:14px; display:flex; flex-direction:column; gap:8px; flex:1; }
+  .name-row { display:flex; justify-content:space-between; align-items:baseline; gap:8px; }
+  h3 { font-size:1.05rem; font-weight:600; }
+  .price { font-weight:600; color:#b5651d; white-space:nowrap; }
+  .desc { color:#6b6b6b; font-size:.9rem; }
+  .actions { margin-top:auto; }
+  .order { display:block; text-align:center; padding:10px; background:#b5651d; color:#fff; text-decoration:none; font-weight:600; border-radius:9px; font-size:.95rem; }
+  .order:active { transform:scale(.98); }
+  .order.off { background:#e8e2da; color:#8a857d; font-weight:500; }
+  footer { text-align:center; color:#9a958c; font-size:.85rem; margin-top:24px; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>The Kitchen</h1>
+      <p>Homemade food, cooked to order for friends.</p>
+    </header>
+    <div class="pickup">Message to order, then we agree a pickup time.</div>
+    
+      <section>
+        <div class="sec-head"><h2>Weekly Menu</h2></div>
+        <p class="sec-note">Fresh each week — message to check what&#x27;s available today.</p>
+        <div class="grid">
+    <div class="card">
+      
+      <div class="card-body">
+        <div class="name-row"><h3>Lasagna Tray</h3><span class="price">THB 650</span></div>
+        <p class="desc">Layered beef lasagna, feeds 4-6. Ready for your oven.</p>
+        <div class="actions"><span class="order off">Message to order</span></div>
+      </div>
+    </div>
+
+    <div class="card">
+      
+      <div class="card-body">
+        <div class="name-row"><h3>Pad Thai</h3><span class="price">THB 120</span></div>
+        <p class="desc">Classic stir-fried noodles with prawns.</p>
+        <div class="actions"><span class="order off">Message to order</span></div>
+      </div>
+    </div></div>
+      </section>
+      <section>
+        <div class="sec-head"><h2>Christmas Pre-order</h2></div>
+        <p class="sec-note">Pre-order for Christmas. These need notice — message early.</p>
+        <div class="grid">
+    <div class="card">
+      
+      <div class="card-body">
+        <div class="name-row"><h3>Roast Turkey (whole)</h3><span class="price">THB 1800</span></div>
+        <p class="desc">Order by Dec 15.</p>
+        <div class="actions"><span class="order off">Message to order</span></div>
+      </div>
+    </div></div>
+      </section>
+    <footer>Made with love. Questions? Just message.</footer>
+  </div>
+</body>
+</html>
