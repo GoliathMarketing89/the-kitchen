@@ -237,17 +237,11 @@
 
   function greet() {
       const greeting =
-        "Hi! I'm your Kitchen Manager — the little helper that runs your shop's menu page for you. " +
-        "You talk to me, and I keep your page up to date. No tech needed.\n\n" +
-        "Here's what I can do:\n" +
-        "• Add a dish to your menu (name, price, a photo)\n" +
-        "• Change a price or take a dish down when it sells out\n" +
-        "• Update your shop name, tagline, or WhatsApp number\n" +
-        "• Set up Christmas pre-orders and cake orders\n" +
-        "• Change how your page looks\n\n" +
-        "To get you set up, let's start with the most important thing: " +
-        "what's the WhatsApp number customers should message to order? " +
-        "Include the country code, like +66.";
+        "Welcome back! I have something new for you — voice chat. 🎤\n\n" +
+        "Now you don't have to type at all. Two new buttons:\n" +
+        "• The microphone button 🎤 — tap it, say what you need (\"add a lasagna tray\"), and it'll type it for you. Tap it again when you're done.\n" +
+        "• The \"Turn on voice chat\" button — tap that and I'll talk back out loud, so you can cook and chat hands-free.\n\n" +
+        "It's easy: tap the mic, talk, and I'll take care of the rest. Want to try it now?";
       addMsg(greeting, "bot");
       speak(greeting);
     }
