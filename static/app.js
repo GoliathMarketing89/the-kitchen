@@ -47,11 +47,13 @@
         renderShortcuts();
         greet();
       } else {
+        loginError.textContent = "Wrong username or password.";
         loginError.hidden = false;
       }
     } catch (err) {
-      loginError.textContent = "Couldn't reach the kitchen. Try again.";
+      loginError.textContent = "Couldn't reach the kitchen: " + (err && err.message ? err.message : err);
       loginError.hidden = false;
+      console.error("login fetch error:", err);
     } finally {
       btn.disabled = false;
       btn.textContent = "Open my kitchen";
