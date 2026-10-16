@@ -39,7 +39,10 @@
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ user: $("user").value, pass: $("pass").value }),
       });
-      const data = await res.json();
+      const raw = await res.text();
+      console.log("login raw response:", res.status, raw);
+      let data;
+      try { data = JSON.parse(raw); } catch (e) { data = { ok: false }; }
       if (data.ok) {
         authed = true;
         loginScreen.hidden = true;
@@ -47,7 +50,7 @@
         renderShortcuts();
         greet();
       } else {
-        loginError.textContent = "Wrong username or password.";
+        loginError.textContent = "Login failed. Server said: " + raw.slice(0, 120);
         loginError.hidden = false;
       }
     } catch (err) {
