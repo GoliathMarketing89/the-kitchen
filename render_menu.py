@@ -96,6 +96,7 @@ def render():
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
 <title>{shop_name}</title>
 <style>
   * {{ box-sizing: border-box; margin: 0; padding: 0; }}
