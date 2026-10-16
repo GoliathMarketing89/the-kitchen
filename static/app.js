@@ -107,13 +107,21 @@
   }
 
   function greet() {
-    addMsg(
-      "Welcome back! I'm your Kitchen Manager. Tell me what you'd like to do — " +
-      "add a dish, change a price, update your page, or tap a shortcut below. " +
-      "If you're setting up for the first time, let's start with your WhatsApp number.",
-      "bot"
-    );
-  }
+      addMsg(
+        "Hi! I'm your Kitchen Manager — the little helper that runs your shop's menu page for you. " +
+        "You talk to me, and I keep your page up to date. No tech needed.\n\n" +
+        "Here's what I can do:\n" +
+        "• Add a dish to your menu (name, price, a photo)\n" +
+        "• Change a price or take a dish down when it sells out\n" +
+        "• Update your shop name, tagline, or WhatsApp number\n" +
+        "• Set up Christmas pre-orders and cake orders\n" +
+        "• Change how your page looks\n\n" +
+        "To get you set up, let's start with the most important thing: " +
+        "what's the WhatsApp number customers should message to order? " +
+        "Include the country code, like +66.",
+        "bot"
+      );
+    }
 
   // ---------- Send ----------
   async function send() {

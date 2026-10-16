@@ -118,9 +118,9 @@ def call_manager(message, history):
     prompt = ctx + "Owner says: " + message
 
     cmd = [
-        "kitchen-manager", "chat", "-q", prompt,
-        "--oneshot", "--format", "text",
-    ]
+            "/home/michael/.local/bin/kitchen-manager", "chat", "-q", prompt,
+            "--oneshot", "--format", "text",
+        ]
     try:
         proc = subprocess.run(
             cmd, capture_output=True, text=True, timeout=240,
