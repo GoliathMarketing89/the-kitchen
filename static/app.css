@@ -238,6 +238,56 @@ body {
 .send-btn:hover { background: var(--accent-deep); }
 .send-btn:active { transform: scale(.92); }
 .send-btn:disabled { opacity: .5; cursor: default; }
+
+/* Mic button */
+.icon-btn {
+  width: 46px; height: 46px;
+  border: none;
+  border-radius: 50%;
+  background: #f1e9dd;
+  color: var(--ink);
+  font-size: 1.2rem;
+  cursor: pointer;
+  flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  transition: all .2s;
+}
+.icon-btn:hover { background: var(--accent-soft); }
+.icon-btn:active { transform: scale(.92); }
+.icon-btn.recording {
+  background: #c0392b;
+  color: #fff;
+  animation: pulse 1s infinite;
+}
+
+/* Voice chat toggle */
+.voice-row { text-align: center; margin-top: 10px; }
+.voice-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1.5px solid #e5ddd2;
+  background: var(--card);
+  color: var(--muted);
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-size: .85rem;
+  cursor: pointer;
+  transition: all .2s;
+}
+.voice-toggle:hover { border-color: var(--accent); color: var(--accent); }
+.voice-dot {
+  width: 9px; height: 9px;
+  border-radius: 50%;
+  background: var(--muted);
+  transition: background .2s;
+}
+.voice-toggle.on {
+  border-color: var(--green);
+  color: var(--green);
+  background: #eef5ef;
+}
+.voice-toggle.on .voice-dot { background: var(--green); animation: pulse 2s infinite; }
 .composer-hint { text-align: center; color: #6b6b6b; font-size: .8rem; margin-top: 8px; }
 
 /* ============ ANIMATIONS ============ */

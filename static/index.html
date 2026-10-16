@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>The Kitchen Manager</title>
-<link rel="stylesheet" href="/static/app.css?v=3">
+<link rel="stylesheet" href="/static/app.css?v=4">
 </head>
 <body>
   <!-- ============ LOGIN SCREEN ============ -->
@@ -47,12 +47,19 @@
     <footer class="composer">
       <div class="composer-row">
         <textarea id="input" rows="1" placeholder="Tell me what you need…" enterkeyhint="send"></textarea>
+        <button id="mic-btn" class="icon-btn" title="Tap to speak — I'll type it for you" aria-label="Speak">🎤</button>
         <button id="send-btn" class="send-btn" aria-label="Send">➤</button>
       </div>
       <div class="composer-hint">I can add dishes, change prices, update your page, and more.</div>
+      <div class="voice-row">
+        <button id="voice-btn" class="voice-toggle" title="Turn voice chat on/off">
+          <span id="voice-dot" class="voice-dot"></span>
+          <span id="voice-label">Turn on voice chat</span>
+        </button>
+      </div>
     </footer>
   </div>
 
-  <script src="/static/app.js?v=4"></script>
+  <script src="/static/app.js?v=5"></script>
 </body>
 </html>

@@ -11,10 +11,24 @@
   const sendBtn = $("send-btn");
   const loginForm = $("login-form");
   const loginError = $("login-error");
+  const micBtn = $("mic-btn");
+  const voiceBtn = $("voice-btn");
+  const voiceDot = $("voice-dot");
+  const voiceLabel = $("voice-label");
 
   // Session flag (in-memory; a refresh re-prompts login — that's fine and safe).
   let authed = false;
   let history = [];
+
+  // Speech support flags
+  const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const micSupported = !!SpeechRec;
+  const ttsSupported = "speechSynthesis" in window;
+
+  // Voice chat state
+  let voiceOn = false;
+  let recognition = null;
+  let recogActive = false;
 
   // Default shortcuts. The owner can change these by asking the manager.
   let shortcuts = [
@@ -25,6 +39,116 @@
     "Christmas pre-orders",
     "Update my WhatsApp number",
   ];
+
+  // ---------- Text-to-speech (voice chat replies) ----------
+  function speak(text) {
+    if (!voiceOn || !ttsSupported) return;
+    // Stop anything currently talking so replies don't pile up.
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(cleanForSpeech(text));
+    u.lang = "en-US";
+    u.rate = 1;
+    u.pitch = 1;
+    // Pick a slightly warmer female voice if available.
+    const voices = speechSynthesis.getVoices();
+    const pick = voices.find(v => /female|Samantha|Google US English|Zira/i.test(v.name)) || voices[0];
+    if (pick) u.voice = pick;
+    speechSynthesis.speak(u);
+  }
+
+  // Strip emoji / markdown-ish symbols so TTS doesn't stumble.
+  function cleanForSpeech(text) {
+    return text
+      .replace(/[•▪]/g, " ")
+      .replace(/[*_`>#]/g, "")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  // ---------- Speech recognition (mic -> text) ----------
+  function initRecognition() {
+    if (!micSupported || recognition) return;
+    recognition = new SpeechRec();
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.lang = "en-US";
+
+    recognition.onresult = (e) => {
+      recogActive = false;
+      setMicState(false);
+      const transcript = Array.from(e.results)
+        .map((r) => r[0].transcript)
+        .join(" ")
+        .trim();
+      if (transcript) {
+        input.value = transcript;
+        autoGrow();
+        input.focus();
+        // If voice chat is on, sending is a nice hands-free touch.
+        if (voiceOn) send();
+      }
+    };
+    recognition.onerror = (e) => {
+      recogActive = false;
+      setMicState(false);
+      addMsg("Sorry, I couldn't catch that — please try again or type it.", "bot");
+    };
+    recognition.onend = () => {
+      recogActive = false;
+      setMicState(false);
+    };
+  }
+
+  function toggleMic() {
+    if (!micSupported) {
+      addMsg("This browser doesn't support voice input. Try Chrome or Safari on a phone.", "bot");
+      return;
+    }
+    initRecognition();
+    if (recogActive) {
+      recognition.stop();
+      setMicState(false);
+      recogActive = false;
+    } else {
+      try {
+        recognition.start();
+        recogActive = true;
+        setMicState(true);
+      } catch (err) {
+        // .start() throws if already started; reset and try once.
+        recognition.abort();
+        setTimeout(() => {
+          try { recognition.start(); recogActive = true; setMicState(true); } catch (e2) {}
+        }, 100);
+      }
+    }
+  }
+
+  function setMicState(recording) {
+    micBtn.classList.toggle("recording", recording);
+    micBtn.title = recording ? "Listening… tap to stop" : "Tap to speak — I'll type it for you";
+    micBtn.setAttribute("aria-label", recording ? "Stop listening" : "Speak");
+  }
+
+  micBtn.addEventListener("click", toggleMic);
+
+  // ---------- Voice chat toggle ----------
+  function toggleVoice() {
+    if (!ttsSupported) {
+      addMsg("This browser doesn't support voice replies.", "bot");
+      return;
+    }
+    voiceOn = !voiceOn;
+    voiceBtn.classList.toggle("on", voiceOn);
+    voiceLabel.textContent = voiceOn ? "Voice chat is on" : "Turn on voice chat";
+    if (!voiceOn) speechSynthesis.cancel();
+    else {
+      addMsg("Voice chat is on. I'll read my replies aloud — just tap the mic and talk.", "bot");
+      speak("Voice chat is on. I'll read my replies aloud — just tap the microphone and talk.");
+    }
+  }
+
+  voiceBtn.addEventListener("click", toggleVoice);
 
   // ---------- Login ----------
   loginForm.addEventListener("submit", async (e) => {
@@ -49,6 +173,9 @@
         chatScreen.hidden = false;
         renderShortcuts();
         greet();
+        if (!micSupported && !ttsSupported) {
+          addMsg("Tip: use Chrome or Safari for voice input and voice replies.", "bot");
+        }
       } else {
         loginError.textContent = "Login failed. Server said: " + raw.slice(0, 120);
         loginError.hidden = false;
@@ -64,6 +191,8 @@
   });
 
   $("logout-btn").addEventListener("click", () => {
+    if (recogActive) { recognition && recognition.stop(); setMicState(false); recogActive = false; }
+    if (voiceOn) { speechSynthesis.cancel(); }
     authed = false;
     history = [];
     messagesEl.innerHTML = "";
@@ -107,7 +236,7 @@
   }
 
   function greet() {
-      addMsg(
+      const greeting =
         "Hi! I'm your Kitchen Manager — the little helper that runs your shop's menu page for you. " +
         "You talk to me, and I keep your page up to date. No tech needed.\n\n" +
         "Here's what I can do:\n" +
@@ -118,9 +247,9 @@
         "• Change how your page looks\n\n" +
         "To get you set up, let's start with the most important thing: " +
         "what's the WhatsApp number customers should message to order? " +
-        "Include the country code, like +66.",
-        "bot"
-      );
+        "Include the country code, like +66.";
+      addMsg(greeting, "bot");
+      speak(greeting);
     }
 
   // ---------- Send ----------
@@ -142,17 +271,24 @@
       });
       const data = await res.json();
       typing.remove();
+      let reply;
       if (data.ok) {
-        addMsg(data.reply, "bot");
-        history.push({ role: "assistant", content: data.reply });
+        reply = data.reply;
+        addMsg(reply, "bot");
+        history.push({ role: "assistant", content: reply });
       } else if (data.capped) {
-        addMsg(data.reply, "bot");
+        reply = data.reply;
+        addMsg(reply, "bot");
       } else {
-        addMsg(data.error || "Something went wrong. Try again.", "bot");
+        reply = data.error || "Something went wrong. Try again.";
+        addMsg(reply, "bot");
       }
+      speak(reply);
     } catch (err) {
       typing.remove();
-      addMsg("Couldn't reach the kitchen. Check your connection and try again.", "bot");
+      const msg = "Couldn't reach the kitchen. Check your connection and try again.";
+      addMsg(msg, "bot");
+      speak(msg);
     } finally {
       sendBtn.disabled = false;
       input.focus();
@@ -172,4 +308,10 @@
     input.style.height = Math.min(input.scrollHeight, 120) + "px";
   }
   input.addEventListener("input", autoGrow);
+
+  // Pre-warm voices list for TTS (async population on some browsers).
+  if (ttsSupported) {
+    speechSynthesis.onvoiceschanged = () => {};
+    speechSynthesis.getVoices();
+  }
 })();
