@@ -1,0 +1,6 @@
+#!/home/michael/.hermes/tools/python-3.14.7+20260901-linux-x64/bin/python3.14
+import sys
+from mcp.cli import app
+if __name__ == '__main__':
+    sys.argv[0] = sys.argv[0].removesuffix('.exe')
+    sys.exit(app())

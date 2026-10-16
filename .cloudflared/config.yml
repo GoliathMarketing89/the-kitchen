@@ -1,0 +1,9 @@
+# Cloudflare named tunnel config for the Kitchen Manager window.
+# Routes manager.freshlymade.net -> localhost:8787 (the chat backend).
+tunnel: d65141fd-7728-4744-b81b-234a8266555c
+credentials-file: /home/michael/hermes-workspace/the-kitchen/.cloudflared/credentials.json
+
+ingress:
+  - hostname: manager.freshlymade.net
+    service: http://127.0.0.1:8787
+  - service: http_status:404

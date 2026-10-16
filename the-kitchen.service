@@ -1,0 +1,15 @@
+[Unit]
+Description=The Kitchen chat backend (mom's Kitchen Manager window)
+After=network.target
+
+[Service]
+Type=simple
+Environment=HOME=/home/michael
+EnvironmentFile=/home/michael/hermes-workspace/the-kitchen/backend.env
+WorkingDirectory=/home/michael/hermes-workspace/the-kitchen
+ExecStart=/home/michael/.hermes/installs/55dbd0577755667c/environments/4081185bfb054f54846c4c1de946c389/venv/bin/python3 /home/michael/hermes-workspace/the-kitchen/backend.py
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

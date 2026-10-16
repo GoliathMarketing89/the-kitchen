@@ -1,0 +1,14 @@
+[Unit]
+Description=Cloudflare named tunnel for The Kitchen Manager
+After=network.target the-kitchen.service
+
+[Service]
+Type=simple
+Environment=HOME=/home/michael
+WorkingDirectory=/home/michael/hermes-workspace/the-kitchen
+ExecStart=/home/michael/.local/bin/cloudflared tunnel --config /home/michael/hermes-workspace/the-kitchen/.cloudflared/config.yml run
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target
