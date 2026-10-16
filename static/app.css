@@ -24,6 +24,7 @@ body {
 }
 
 .screen { height: 100%; display: flex; flex-direction: column; }
+[hidden] { display: none !important; }
 
 /* ============ LOGIN ============ */
 #login-screen {
