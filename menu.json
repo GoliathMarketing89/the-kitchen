@@ -23,6 +23,12 @@
           "description": "Classic stir-fried noodles with prawns.",
           "price": "120",
           "image": ""
+        },
+        {
+          "name": "Chicken Green Curry",
+          "description": "Fragrant Thai green curry with chicken and jasmine rice.",
+          "price": "150",
+          "image": ""
         }
       ]
     },
