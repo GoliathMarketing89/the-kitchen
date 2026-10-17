@@ -87,8 +87,9 @@ def extract_reply(raw):
     borders. Falls back to the raw text if the markers aren't found.
     """
     if "╭─" in raw and "╰─" in raw:
-        start = raw.find("╭─")
-        end = raw.find("╰─")
+        # Take the LAST reply box — the agent's final answer, not interim thoughts.
+        start = raw.rfind("╭─")
+        end = raw.rfind("╰─")
         if start != -1 and end != -1 and end > start:
             body = raw[start:end]
             lines = []

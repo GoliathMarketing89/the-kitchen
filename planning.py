@@ -41,7 +41,12 @@ def load_sales():
 
 
 def recipe_cost(recipe):
-    """Return dict with costs for one recipe. Ingredient qty * unit cost."""
+    """Return dict with costs for one recipe.
+
+    `price` is what ONE menu item sells for (a tray, a pot, a plate).
+    `ingredient_cost` is the cost of the whole batch the recipe makes.
+    Margin compares the sale price to that full batch cost.
+    """
     ing_cost = sum(
         float(i.get("qty", 0)) * float(i.get("unit_cost", 0))
         for i in recipe.get("ingredients", [])
@@ -49,9 +54,9 @@ def recipe_cost(recipe):
     servings = max(int(recipe.get("servings", 1)), 1)
     cost_per_serving = ing_cost / servings
     price = float(recipe.get("price") or 0)
-    margin = (price - cost_per_serving) / price if price else 0
+    margin = (price - ing_cost) / price if price else 0
     # Suggested price at a target 60% gross margin on cost.
-    suggested = cost_per_serving / 0.40 if cost_per_serving else 0
+    suggested = ing_cost / 0.40 if ing_cost else 0
     return {
         "name": recipe.get("name", ""),
         "servings": servings,
