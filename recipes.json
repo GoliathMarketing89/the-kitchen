@@ -10,6 +10,16 @@
         { "item": "green curry paste", "qty": 1, "unit": "jar", "unit_cost": 20 },
         { "item": "jasmine rice", "qty": 1, "unit": "kg", "unit_cost": 45 }
       ]
+    },
+    {
+      "name": "Lasagna Tray",
+      "servings": 6,
+      "price": 650,
+      "ingredients": [
+        { "item": "beef mince", "qty": 0.8, "unit": "kg", "unit_cost": 180 },
+        { "item": "lasagna sheets", "qty": 1, "unit": "box", "unit_cost": 60 },
+        { "item": "mozzarella", "qty": 0.5, "unit": "kg", "unit_cost": 400 }
+      ]
     }
   ]
 }
