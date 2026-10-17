@@ -236,15 +236,19 @@
   }
 
   function greet() {
-      const greeting =
-        "Welcome back! I have something new for you — voice chat. 🎤\n\n" +
-        "Now you don't have to type at all. Two new buttons:\n" +
-        "• The microphone button 🎤 — tap it, say what you need (\"add a lasagna tray\"), and it'll type it for you. Tap it again when you're done.\n" +
-        "• The \"Turn on voice chat\" button — tap that and I'll talk back out loud, so you can cook and chat hands-free.\n\n" +
-        "It's easy: tap the mic, talk, and I'll take care of the rest. Want to try it now?";
-      addMsg(greeting, "bot");
-      speak(greeting);
-    }
+          const greeting =
+            "Welcome back! I've got some new things for you. 🎤\n\n" +
+            "You'll see four tabs at the top:\n" +
+            "• Chat — talk to me here, like always.\n" +
+            "• Recipes — what each dish costs to make, and whether the price is fair.\n" +
+            "• Shopping list — everything you need for the week's menu, all added up.\n" +
+            "• Money — what you've sold, what it cost, and what you kept.\n\n" +
+            "You can also tap the mic 🎤 and just talk — I'll type it for you.\n\n" +
+            "And here's the best part: if you ever want something new — a different tab, a new way to plan, anything — just ask. I can add it for you.\n\n" +
+            "Want to start by adding a recipe, or shall I walk you through it?";
+          addMsg(greeting, "bot");
+          speak(greeting);
+        }
 
   // ---------- Send ----------
   async function send() {
