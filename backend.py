@@ -18,6 +18,8 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 
+import planning
+
 BASE = Path(__file__).resolve().parent
 STATIC = BASE / "static"
 STATE = BASE / "state.json"
@@ -184,6 +186,21 @@ async def status():
         "ok": ok, "spent": round(spent, 4),
         "remaining": round(remaining, 4), "budget": MONTHLY_BUDGET,
     })
+
+
+@app.get("/api/recipes")
+async def api_recipes():
+    return JSONResponse({"ok": True, "recipes": planning.recipe_costs()})
+
+
+@app.get("/api/shopping-list")
+async def api_shopping_list():
+    return JSONResponse({"ok": True, **planning.shopping_list()})
+
+
+@app.get("/api/profit")
+async def api_profit():
+    return JSONResponse({"ok": True, **planning.weekly_profit()})
 
 
 if __name__ == "__main__":

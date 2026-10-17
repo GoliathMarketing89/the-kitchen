@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>The Kitchen Manager</title>
-<link rel="stylesheet" href="/static/app.css?v=4">
+<link rel="stylesheet" href="/static/app.css?v=5">
 </head>
 <body>
   <!-- ============ LOGIN SCREEN ============ -->
@@ -24,7 +24,7 @@
     </div>
   </div>
 
-  <!-- ============ CHAT SCREEN ============ -->
+  <!-- ============ MANAGER ============ -->
   <div id="chat-screen" class="screen" hidden>
     <header class="topbar">
       <div class="topbar-left">
@@ -37,29 +37,66 @@
       <button id="logout-btn" class="ghost-btn" title="Log out">Log out</button>
     </header>
 
-    <!-- Shortcut chips -->
-    <div id="shortcuts" class="shortcuts"></div>
+    <!-- Tab bar -->
+    <nav class="tabbar" id="tabbar">
+      <button class="tab active" data-tab="chat">Chat</button>
+      <button class="tab" data-tab="recipes">Recipes</button>
+      <button class="tab" data-tab="shopping">Shopping list</button>
+      <button class="tab" data-tab="profit">Money</button>
+    </nav>
 
-    <!-- Messages -->
-    <main id="messages" class="messages"></main>
+    <!-- ===== CHAT TAB ===== -->
+    <div id="tab-chat" class="tab-panel active">
+      <div id="shortcuts" class="shortcuts"></div>
+      <main id="messages" class="messages"></main>
+      <footer class="composer">
+        <div class="composer-row">
+          <textarea id="input" rows="1" placeholder="Tell me what you need…" enterkeyhint="send"></textarea>
+          <button id="mic-btn" class="icon-btn" title="Tap to speak — I'll type it for you" aria-label="Speak">🎤</button>
+          <button id="send-btn" class="send-btn" aria-label="Send">➤</button>
+        </div>
+        <div class="composer-hint">I can add dishes, change prices, plan costs, and more. Or use the tabs above.</div>
+        <div class="voice-row">
+          <button id="voice-btn" class="voice-toggle" title="Turn voice chat on/off">
+            <span id="voice-dot" class="voice-dot"></span>
+            <span id="voice-label">Turn on voice chat</span>
+          </button>
+        </div>
+      </footer>
+    </div>
 
-    <!-- Composer -->
-    <footer class="composer">
-      <div class="composer-row">
-        <textarea id="input" rows="1" placeholder="Tell me what you need…" enterkeyhint="send"></textarea>
-        <button id="mic-btn" class="icon-btn" title="Tap to speak — I'll type it for you" aria-label="Speak">🎤</button>
-        <button id="send-btn" class="send-btn" aria-label="Send">➤</button>
+    <!-- ===== RECIPES TAB ===== -->
+    <div id="tab-recipes" class="tab-panel">
+      <div class="panel-head">
+        <h2>Costs &amp; prices</h2>
+        <p>What each dish costs to make, and what it should sell for. Every dish here matches one on your menu.</p>
       </div>
-      <div class="composer-hint">I can add dishes, change prices, update your page, and more.</div>
-      <div class="voice-row">
-        <button id="voice-btn" class="voice-toggle" title="Turn voice chat on/off">
-          <span id="voice-dot" class="voice-dot"></span>
-          <span id="voice-label">Turn on voice chat</span>
-        </button>
+      <div id="recipes-list" class="data-list"></div>
+      <button id="recipes-refresh" class="soft-btn">Refresh</button>
+    </div>
+
+    <!-- ===== SHOPPING TAB ===== -->
+    <div id="tab-shopping" class="tab-panel">
+      <div class="panel-head">
+        <h2>Shopping list</h2>
+        <p>Everything you need for the dishes on this week's menu, all added up. Just tell me "make the list" or add a sale and I'll keep it current.</p>
       </div>
-    </footer>
+      <div id="shopping-list" class="data-list"></div>
+      <button id="shopping-refresh" class="soft-btn">Refresh</button>
+    </div>
+
+    <!-- ===== PROFIT TAB ===== -->
+    <div id="tab-profit" class="tab-panel">
+      <div class="panel-head">
+        <h2>Money</h2>
+        <p>What you've sold, what it cost, and what you've kept. Tell me "I sold 3 lasagnas today" and I'll log it.</p>
+      </div>
+      <div id="profit-summary" class="profit-card"></div>
+      <div id="sales-log" class="data-list"></div>
+      <button id="profit-refresh" class="soft-btn">Refresh</button>
+    </div>
   </div>
 
-  <script src="/static/app.js?v=6"></script>
+  <script src="/static/app.js?v=7"></script>
 </body>
 </html>

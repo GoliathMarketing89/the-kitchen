@@ -308,4 +308,133 @@
     speechSynthesis.onvoiceschanged = () => {};
     speechSynthesis.getVoices();
   }
+
+  // ---------- Tabs ----------
+  const tabBtns = document.querySelectorAll(".tab");
+  const tabPanels = {
+    chat: $("tab-chat"),
+    recipes: $("tab-recipes"),
+    shopping: $("tab-shopping"),
+    profit: $("tab-profit"),
+  };
+
+  function showTab(name) {
+    tabBtns.forEach((b) => b.classList.toggle("active", b.dataset.tab === name));
+    Object.entries(tabPanels).forEach(([k, el]) => el.classList.toggle("active", k === name));
+    if (name === "recipes") loadRecipes();
+    else if (name === "shopping") loadShopping();
+    else if (name === "profit") loadProfit();
+  }
+  tabBtns.forEach((b) => b.addEventListener("click", () => showTab(b.dataset.tab)));
+  ["recipes-refresh", "shopping-refresh", "profit-refresh"].forEach((id) => {
+    $(id).addEventListener("click", () => {
+      const map = { "recipes-refresh": "recipes", "shopping-refresh": "shopping", "profit-refresh": "profit" };
+      const t = map[id];
+      if (t === "recipes") loadRecipes();
+      else if (t === "shopping") loadShopping();
+      else loadProfit();
+    });
+  });
+
+  async function loadRecipes() {
+    const el = $("recipes-list");
+    el.innerHTML = '<div class="empty-note">Loading…</div>';
+    try {
+      const r = await fetch("/api/recipes");
+      const d = await r.json();
+      if (!d.ok) throw new Error("bad response");
+      const recs = d.recipes || [];
+      if (!recs.length) {
+        el.innerHTML = '<div class="empty-note">No recipes saved yet. Tell me a dish and its ingredients and I\'ll track the cost for you.</div>';
+        return;
+      }
+      el.innerHTML = "";
+      recs.forEach((rc) => {
+        const row = document.createElement("div");
+        row.className = "data-row";
+        const margin = rc.margin_pct >= 30 ? "d-good" : "d-warn";
+        row.innerHTML =
+          '<div class="d-main">' + esc(rc.name) + '</div>' +
+          '<div class="d-right"><div class="val">฿' + rc.price + '</div>' +
+          '<div class="' + margin + '">' + rc.margin_pct + '% margin</div></div>';
+        el.appendChild(row);
+      });
+    } catch (e) {
+      el.innerHTML = '<div class="empty-note">Couldn\u2019t load recipes. Try the Refresh button.</div>';
+    }
+  }
+
+  async function loadShopping() {
+    const el = $("shopping-list");
+    el.innerHTML = '<div class="empty-note">Loading…</div>';
+    try {
+      const r = await fetch("/api/shopping-list");
+      const d = await r.json();
+      if (!d.ok) throw new Error("bad");
+      const items = d.items || [];
+      if (!items.length) {
+        el.innerHTML = '<div class="empty-note">No shopping list yet. Once dishes have recipes, your list builds itself here.</div>';
+        return;
+      }
+      el.innerHTML = "";
+      items.forEach((it) => {
+        const row = document.createElement("div");
+        row.className = "data-row";
+        row.innerHTML =
+          '<div class="d-main">' + esc(it.item) + ' <span class="d-sub">' + esc(it.qty) + ' ' + esc(it.unit) + '</span></div>' +
+          '<div class="d-right"><div class="val">฿' + it.est_cost + '</div></div>';
+        el.appendChild(row);
+      });
+      const total = document.createElement("div");
+      total.className = "data-row";
+      total.innerHTML = '<div class="d-main">Total cost</div><div class="d-right"><div class="val">฿' + d.total_cost + '</div></div>';
+      el.appendChild(total);
+    } catch (e) {
+      el.innerHTML = '<div class="empty-note">Couldn\u2019t load the list. Try Refresh.</div>';
+    }
+  }
+
+  async function loadProfit() {
+    const sg = $("profit-summary");
+    const sl = $("sales-log");
+    try {
+      const r = await fetch("/api/profit");
+      const d = await r.json();
+      if (!d.ok) throw new Error("bad");
+      const profitCls = d.profit >= 0 ? "pgreen" : "pred";
+      sg.innerHTML =
+        '<h2>This week</h2>' +
+        '<div class="profit-grid">' +
+        '<div class="profit-cell"><div class="plabel">Sold</div><div class="pvalue">฿' + d.revenue + '</div></div>' +
+        '<div class="profit-cell"><div class="plabel">Cost</div><div class="pvalue">฿' + d.ingredient_cost + '</div></div>' +
+        '<div class="profit-cell ' + profitCls + '"><div class="plabel">Kept</div><div class="pvalue">฿' + d.profit + '</div></div>' +
+        '</div>';
+      const sales = d.sales || [];
+      if (!sales.length) {
+        sl.innerHTML = '<div class="empty-note">No sales logged yet. Tell me \u201CI sold 3 lasagnas\u201D and I\u2019ll add them up here.</div>';
+      } else {
+        sl.innerHTML = "";
+        sales.forEach((s) => {
+          const row = document.createElement("div");
+          row.className = "data-row";
+          row.innerHTML =
+            '<div class="d-main">' + esc(s.dish) + ' <span class="d-sub">x' + (s.qty || 1) + '</span></div>' +
+            '<div class="d-right"><div class="val">฿' + (s.price || 0) + '</div></div>';
+          sl.appendChild(row);
+        });
+      }
+    } catch (e) {
+      sg.innerHTML = '<div class="empty-note">Couldn\u2019t load your numbers. Try Refresh.</div>';
+      sl.innerHTML = "";
+    }
+  }
+
+  function esc(t) {
+    const d = document.createElement("div");
+    d.textContent = t == null ? "" : String(t);
+    return d.innerHTML;
+  }
+
+  // Open the chat tab by default after login.
+  showTab("chat");
 })();

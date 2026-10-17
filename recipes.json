@@ -1,0 +1,15 @@
+{
+  "recipes": [
+    {
+      "name": "Chicken Green Curry",
+      "servings": 4,
+      "price": 150,
+      "ingredients": [
+        { "item": "chicken breast", "qty": 0.5, "unit": "kg", "unit_cost": 120 },
+        { "item": "coconut milk", "qty": 1, "unit": "can", "unit_cost": 35 },
+        { "item": "green curry paste", "qty": 1, "unit": "jar", "unit_cost": 20 },
+        { "item": "jasmine rice", "qty": 1, "unit": "kg", "unit_cost": 45 }
+      ]
+    }
+  ]
+}
