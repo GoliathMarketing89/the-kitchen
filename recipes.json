@@ -20,6 +20,18 @@
         { "item": "lasagna sheets", "qty": 1, "unit": "box", "unit_cost": 60 },
         { "item": "mozzarella", "qty": 0.5, "unit": "kg", "unit_cost": 400 }
       ]
+    },
+    {
+      "name": "Oven Roasted Chicken Quarter Plate",
+      "servings": 4,
+      "price": 450,
+      "ingredients": [
+        { "item": "chicken leg+thigh (bone-in)", "qty": 1.12, "unit": "kg", "unit_cost": 92 },
+        { "item": "onion powder", "qty": 4, "unit": "tsp", "unit_cost": 2.5 },
+        { "item": "garlic powder", "qty": 4, "unit": "tsp", "unit_cost": 1 },
+        { "item": "chicken powder", "qty": 4, "unit": "tsp", "unit_cost": 0.25 },
+        { "item": "olive oil", "qty": 4, "unit": "tsp", "unit_cost": 1.75 }
+      ]
     }
   ]
 }
