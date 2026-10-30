@@ -32,6 +32,31 @@
         { "item": "chicken powder", "qty": 4, "unit": "tsp", "unit_cost": 0.25 },
         { "item": "olive oil", "qty": 4, "unit": "tsp", "unit_cost": 1.75 }
       ]
+    },
+    {
+      "name": "Bolognese Tray",
+      "servings": 6,
+      "price": 0,
+      "ingredients": [
+        { "item": "ground beef", "qty": 0.45, "unit": "kg", "unit_cost": 195 },
+        { "item": "ground pork (10% fat)", "qty": 0.45, "unit": "kg", "unit_cost": 130 },
+        { "item": "onion", "qty": 0.15, "unit": "kg", "unit_cost": 37 },
+        { "item": "celery", "qty": 0.3, "unit": "kg", "unit_cost": 120 },
+        { "item": "carrot", "qty": 0.06, "unit": "kg", "unit_cost": 25 },
+        { "item": "tomato paste", "qty": 0.035, "unit": "kg", "unit_cost": 182 },
+        { "item": "passata (jar)", "qty": 1, "unit": "jar", "unit_cost": 65 },
+        { "item": "white wine", "qty": 0.67, "unit": "bottle", "unit_cost": 199 },
+        { "item": "parmesan", "qty": 0.1, "unit": "kg", "unit_cost": 629 },
+        { "item": "mozzarella", "qty": 0.4, "unit": "kg", "unit_cost": 330 },
+        { "item": "milk", "qty": 1, "unit": "L", "unit_cost": 43 },
+        { "item": "butter", "qty": 0.09, "unit": "kg", "unit_cost": 230 },
+        { "item": "all-purpose flour", "qty": 0.49, "unit": "kg", "unit_cost": 33 },
+        { "item": "spinach", "qty": 0.1, "unit": "kg", "unit_cost": 63 },
+        { "item": "eggs", "qty": 3, "unit": "pc", "unit_cost": 6.5 },
+        { "item": "salt", "qty": 1, "unit": "tsp", "unit_cost": 0.3 },
+        { "item": "black pepper", "qty": 1, "unit": "tsp", "unit_cost": 1 },
+        { "item": "nutmeg", "qty": 1, "unit": "tsp", "unit_cost": 2 }
+      ]
     }
   ]
 }
