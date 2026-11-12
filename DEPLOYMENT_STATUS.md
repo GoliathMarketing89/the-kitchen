@@ -1,5 +1,13 @@
 # Kitchen authentication deployment status
 
+## Owner password-change release
+
+Published and deployed commit `5e1f4bc0cf021372f5a6257e90923ddf88735696` on 13 November 2026 at `https://manager.freshlymade.net/`. The existing username and password were preserved and verified over HTTPS after release. No password change was performed during deployment or verification.
+
+The protected persistent verifier is authoritative, including after restart and after the owner changes her password. A graceful backend restart ended existing sessions. Live assets match the reviewed release, private routes remain protected, and secure-cookie/session/logout checks pass. A validation-only request confirmed the authenticated password-change route without changing a password. All four business records are unchanged, no assistant command was executed, and the public customer menu remains available.
+
+Mom can use **Help → Change password**, enter her current password, and enter her chosen new password twice. Actual phone/password-manager acceptance remains for the owner. The pre-release review passed 42 isolated Linux Python tests and 28 frontend tests; see `PASSWORD_CHANGE_REVIEW.md`. Detailed operational notes are retained privately.
+
 ## Phone usability release
 
 Published and deployed commit `d73dbaa7b5fb412cbeaa15f9b22d981a1d5e31bd` on 12 November 2026 to `https://manager.freshlymade.net/`. This static-only release includes larger controls and text, labelled Message/Send actions, safer draft and dictation behavior, contextual help and clearer estimate wording. The owner's final refinements remove duplicate shortcuts and introduce a green-and-cream theme with self-hosted Poppins. A single tab group uses two columns on narrow phones to keep whole words readable.

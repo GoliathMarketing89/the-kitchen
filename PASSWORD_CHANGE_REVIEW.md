@@ -1,6 +1,6 @@
 # Password-change security review
 
-Scope: local changes after `154d980`, implementing the owner's authenticated password change. Terra implements, Luna tests, and the coordinator reviews authorization, credential storage, session races and the browser flow. This is not a review of the entire Hermes agent or a claim of complete security compliance. Nothing from this patch has been published or deployed.
+Scope: changes after `154d980`, implementing the owner's authenticated password change. Terra implemented, Luna tested, and the coordinator reviewed authorization, credential storage, session races and the browser flow. This is not a review of the entire Hermes agent or a claim of complete security compliance. After this review, the owner authorized publication and deployment; commit `5e1f4bc` was deployed on 13 November 2026 with the current username/password preserved. See `DEPLOYMENT_STATUS.md` for live verification.
 
 ## Design reviewed
 

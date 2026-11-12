@@ -2,9 +2,9 @@
 
 This is an operator runbook, not evidence of a deployment. The configured tunnel hostname is `manager.freshlymade.net`; the checked-in backend unit invokes Python from a Hermes-managed environment. Verify the live host, unit scope and routing before applying these instructions. Do not print credentials, verifier, cookies or configuration contents into terminals captured by logs, issue trackers or chat.
 
-## Pending password-change release
+## Password-change release
 
-The local password-change patch is not deployed. The real Linux credential-store tests described in `PASSWORD_CHANGE_REVIEW.md` passed in an isolated temporary test directory. Provision `KITCHEN_CREDENTIAL_STORE` privately using the existing verifier and protected local filesystem described in `AUTH_SETUP.md`; verify the file and environment configuration before starting the new backend. Do not change the owner's password as a deployment health check.
+The password-change patch was deployed on 13 November 2026; see `DEPLOYMENT_STATUS.md`. The real Linux credential-store tests described in `PASSWORD_CHANGE_REVIEW.md` passed in an isolated temporary test directory. For another installation, privately provision its existing verifier using the protected local storage described in `AUTH_SETUP.md` before starting the new backend. Do not change the owner's password as a deployment health check. Keep installation-specific paths and service settings in private operational records.
 
 Its code-only release must include the new `credential_store.py` module alongside `backend.py` and all three manager UI assets. The old authentication-release helper and its fixed file allowlist are not sufficient for this patch. Retain the current secured runtime, protected auth configuration, rotated tunnel configuration and business records. A backend restart is required for this feature and invalidates sessions.
 
