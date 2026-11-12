@@ -2,7 +2,7 @@
 
 Make the manager answer three practical questions for the mother: what needs doing, what has been saved, and how to correct a mistake. Give common tasks visible buttons and keep Hermes available for help and interpretation. Validate the sequence against one real bakery day before adding more screens.
 
-Prepared 12 November 2026. Authentication release `2a2027e` is published to GitHub. Deployment to the existing Hermes host is pending an accepted SSH login; the live manager still returns 404 for `/api/session`. The public menu and manager both respond over HTTPS. The live sign-in screen was inspected; the signed-in workflow assessment comes from source, without entering credentials or invoking Hermes.
+Prepared 12 November 2026. Authentication release `2a2027e` is published and deployed to the existing Hermes host. External HTTPS checks verify unauthorized API rejection, login, secure cookie attributes, session persistence and logout/replay rejection. Business record checksums are unchanged. The product assessment comes from source and the live sign-in screen; a signed-in phone walkthrough and live Hermes capability checks remain pending. See `DEPLOYMENT_STATUS.md` for release evidence and remaining work.
 
 ## What needs attention
 
@@ -18,7 +18,7 @@ Use the existing host and domain. Preserve records, back up and verify a separat
 
 Check unauthorized rejection on every private route, owner login, refresh, expiry and logout on the real HTTPS origin. Rotate previously exposed credentials and tunnel credentials through the existing administration path. Current-tree removal does not remove Git history. Keep rollback access restricted because the previous backend has no API authorization.
 
-**Owner:** coordinator with Terra supporting deployment diagnosis. **Done when:** the expected revision is running, the owner can sign in on her phone, and unauthorized requests fail. Publication is complete; deployment remains pending server access.
+**Owner:** coordinator with Terra supporting deployment diagnosis. **Done when:** the expected revision is running, the owner can sign in on her phone, and unauthorized requests fail. Deployment and HTTP authentication verification are complete; owner phone acceptance and exposed tunnel-secret rotation remain pending.
 
 ## 1 Make the present app comfortable and honest
 
