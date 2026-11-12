@@ -1,6 +1,6 @@
 # Authentication setup (local pilot)
 
-Provision credentials and HTTPS before exposing this release. Credential-bearing runtime files are excluded from the current source tree; previously committed copies still require coordinated rotation and history remediation. Do not put new secrets in the repository. See `DEPLOYMENT_RUNBOOK.md` before updating an existing installation: preserve host configuration outside the checkout before any Git update that removes formerly tracked runtime files.
+Provision credentials and HTTPS before exposing this release. Credential-bearing runtime files are excluded from the current source tree. The login password and exposed Kitchen tunnel secret were rotated on 12 November 2026; historical copies remain in Git and must not be reused. Do not put new secrets in the repository. See `DEPLOYMENT_RUNBOOK.md` before updating an existing installation: preserve host configuration outside the checkout before any Git update that removes formerly tracked runtime files.
 
 Set these environment variables outside the checkout, in a protected service environment:
 

@@ -24,4 +24,6 @@ Stop new traffic and wait for active record-writing jobs to finish. Preserve the
 
 A code rollback must not replace records created since the backup. Restore data only for a diagnosed data-loss event, after comparing the current records and backup, preserving both, and obtaining the appropriate business authorization. Verify the selected restore in isolation first. Reopen access only after authentication and routing are verified, then record the release or incident and any follow-up credential rotation.
 
+The exposed Kitchen tunnel secret was rotated on 12 November 2026. Preserve the current protected tunnel credential and `50-private-config.conf` service override during code rollback. Earlier credential backups are retired audit material; restoring them will prevent the tunnel from reconnecting. See `DEPLOYMENT_STATUS.md` for verified release and rotation evidence.
+
 The pilot stores sessions and login throttles in one process and loses both on restart. The tunnel can make all users appear to share one direct client address, so five attempts in five minutes may temporarily block everyone. A distributed edge rate limit and a trusted client-address design require separate verification; never trust arbitrary forwarded headers. Authentication alone does not limit the Hermes profile's permissions or establish safe backups.

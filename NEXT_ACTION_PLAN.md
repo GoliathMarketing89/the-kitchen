@@ -18,7 +18,7 @@ Use the existing host and domain. Preserve records, back up and verify a separat
 
 Check unauthorized rejection on every private route, owner login, refresh, expiry and logout on the real HTTPS origin. Rotate previously exposed credentials and tunnel credentials through the existing administration path. Current-tree removal does not remove Git history. Keep rollback access restricted because the previous backend has no API authorization.
 
-**Owner:** coordinator with Terra supporting deployment diagnosis. **Done when:** the expected revision is running, the owner can sign in on her phone, and unauthorized requests fail. Deployment and HTTP authentication verification are complete; owner phone acceptance and exposed tunnel-secret rotation remain pending.
+**Owner:** coordinator with Terra supporting deployment diagnosis. **Done when:** the expected revision is running, the owner can sign in on her phone, and unauthorized requests fail. Deployment, HTTP authentication verification and tunnel-secret rotation are complete; owner phone acceptance remains pending.
 
 ## 1 Make the present app comfortable and honest
 
