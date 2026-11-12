@@ -1,0 +1,7 @@
+# Kitchen Manager tests
+
+Run from `source` with `python -m unittest discover -s tests -v` and `node --test tests/test_frontend.cjs`. The auth HTTP tests use a temporary synthetic environment and redirect state writes to a temporary directory. Planning tests use temporary synthetic JSON fixtures. No test loads the bakery's menu, recipe, sales, environment, or runtime files, and no test invokes Hermes or a production service.
+
+The initial suite covers recipe batch and per-serving arithmetic plus shopping aggregation for like-named ingredients with the same unit. These are baseline calculations only. Before relying on totals, follow-up work should address: date filtering and timezone boundaries in `weekly_profit`; sale-time snapshots so recipe edits do not rewrite historical totals; missing-recipe cost completeness; incompatible-unit aggregation; explicit batch-versus-portion sale units; and validation/decimal money handling. The tests intentionally do not assert current behavior for those risks.
+
+Auth tests cover fail-closed configuration, private-route gates, session lifecycle, request validation and limits, origin checks, rate limiting, and isolated successful handlers. Frontend tests use Node's built-in VM and a minimal DOM stub for session races, logout cleanup, duplicate sends, and bounded Unicode history serialization. They do not replace browser or mobile interaction checks.

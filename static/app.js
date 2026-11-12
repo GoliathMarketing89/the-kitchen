@@ -16,8 +16,27 @@
   const voiceDot = $("voice-dot");
   const voiceLabel = $("voice-label");
 
-  // Session flag (in-memory; a refresh re-prompts login — that's fine and safe).
   let authed = false;
+  let generation = 0;
+  let sending = false;
+  let authPending = false;
+  // Storage may be unavailable in private or restricted browser contexts.
+  const logoutMarker = {
+    get() { try { return sessionStorage.getItem("kitchenLogoutPending"); } catch (_) { return null; } },
+    set() { try { sessionStorage.setItem("kitchenLogoutPending", "1"); } catch (_) {} },
+    clear() { try { sessionStorage.removeItem("kitchenLogoutPending"); } catch (_) {} },
+  };
+
+  async function apiFetch(url, options) {
+    const started = generation;
+    const response = await fetch(url, options);
+    if (response.status === 401 && started === generation && authed) {
+      clearSession();
+      loginError.textContent = "Your session expired. Please sign in again.";
+      loginError.hidden = false;
+    }
+    return response;
+  }
   let history = [];
 
   // Speech support flags
@@ -69,11 +88,13 @@
   function initRecognition() {
     if (!micSupported || recognition) return;
     recognition = new SpeechRec();
+    const recordingGeneration = generation;
     recognition.continuous = false;
     recognition.interimResults = false;
     recognition.lang = "en-US";
 
     recognition.onresult = (e) => {
+      if (!authed || recordingGeneration !== generation) return;
       recogActive = false;
       setMicState(false);
       const transcript = Array.from(e.results)
@@ -89,11 +110,13 @@
       }
     };
     recognition.onerror = (e) => {
+      if (!authed || recordingGeneration !== generation) return;
       recogActive = false;
       setMicState(false);
-      addMsg("Sorry, I couldn't catch that — please try again or type it.", "bot");
+      if (authed && recordingGeneration === generation) addMsg("Sorry, I couldn't catch that — please try again or type it.", "bot");
     };
     recognition.onend = () => {
+      if (!authed || recordingGeneration !== generation) return;
       recogActive = false;
       setMicState(false);
     };
@@ -117,8 +140,9 @@
       } catch (err) {
         // .start() throws if already started; reset and try once.
         recognition.abort();
+        const retryGeneration = generation;
         setTimeout(() => {
-          try { recognition.start(); recogActive = true; setMicState(true); } catch (e2) {}
+          if (authed && retryGeneration === generation && recognition) { try { recognition.start(); recogActive = true; setMicState(true); } catch (e2) {} }
         }, 100);
       }
     }
@@ -151,54 +175,112 @@
   voiceBtn.addEventListener("click", toggleVoice);
 
   // ---------- Login ----------
+  function openSession() {
+    generation++;
+    logoutMarker.clear();
+    authed = true;
+    loginScreen.hidden = true;
+    chatScreen.hidden = false;
+    $("pass").value = "";
+    loginError.hidden = true;
+    showTab("chat");
+    renderShortcuts();
+    greet();
+  }
+
+  function clearSession() {
+    generation++;
+    authed = false;
+    sending = false;
+    sendBtn.disabled = false;
+    if (recognition && recogActive) recognition.abort();
+    recognition = null;
+    recogActive = false;
+    setMicState(false);
+    if (ttsSupported) speechSynthesis.cancel();
+    voiceOn = false;
+    voiceBtn.classList.remove("on");
+    voiceLabel.textContent = "Turn on voice chat";
+    history = [];
+    input.value = "";
+    autoGrow();
+    messagesEl.innerHTML = "";
+    $("recipes-list").innerHTML = "";
+    $("shopping-list").innerHTML = "";
+    $("profit-summary").innerHTML = "";
+    $("sales-log").innerHTML = "";
+    showTab("chat");
+    chatScreen.hidden = true;
+    loginScreen.hidden = false;
+    $("pass").value = "";
+  }
+
   loginForm.addEventListener("submit", async (e) => {
     e.preventDefault();
+    if (authPending) return;
+    authPending = true;
+    const started = ++generation;
     const btn = $("login-btn");
     btn.disabled = true;
     btn.textContent = "Opening…";
     loginError.hidden = true;
     try {
       const res = await fetch("/api/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ user: $("user").value, pass: $("pass").value }),
       });
-      const raw = await res.text();
-      console.log("login raw response:", res.status, raw);
-      let data;
-      try { data = JSON.parse(raw); } catch (e) { data = { ok: false }; }
-      if (data.ok) {
-        authed = true;
-        loginScreen.hidden = true;
-        chatScreen.hidden = false;
-        renderShortcuts();
-        greet();
-        if (!micSupported && !ttsSupported) {
-          addMsg("Tip: use Chrome or Safari for voice input and voice replies.", "bot");
-        }
-      } else {
-        loginError.textContent = "Login failed. Server said: " + raw.slice(0, 120);
+      const data = await res.json();
+      if (started !== generation) return;
+      if (res.ok && data.ok) openSession();
+      else {
+        loginError.textContent = data.error || "Couldn't sign in. Please try again.";
         loginError.hidden = false;
       }
     } catch (err) {
-      loginError.textContent = "Couldn't reach the kitchen: " + (err && err.message ? err.message : err);
-      loginError.hidden = false;
-      console.error("login fetch error:", err);
+      if (started === generation) {
+        loginError.textContent = "Couldn't reach the kitchen. Please try again.";
+        loginError.hidden = false;
+      }
     } finally {
+      authPending = false;
       btn.disabled = false;
       btn.textContent = "Open my kitchen";
     }
   });
 
+  async function endServerSession() {
+    if (authPending) return;
+    authPending = true;
+    const ended = generation;
+    const btn = $("login-btn");
+    btn.disabled = true;
+    loginError.hidden = true;
+    try {
+      const res = await fetch("/api/logout", {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: "{}",
+      });
+      if (!res.ok && res.status !== 401) throw new Error("logout failed");
+      logoutMarker.clear();
+    } catch (err) {
+      if (generation === ended) {
+        loginError.textContent = "Could not confirm sign-out on the server. ";
+        const retry = document.createElement("button");
+        retry.type = "button";
+        retry.textContent = "Retry sign-out";
+        retry.addEventListener("click", endServerSession);
+        loginError.appendChild(retry);
+        loginError.hidden = false;
+      }
+    } finally {
+      authPending = false;
+      btn.disabled = false;
+    }
+  }
+
   $("logout-btn").addEventListener("click", () => {
-    if (recogActive) { recognition && recognition.stop(); setMicState(false); recogActive = false; }
-    if (voiceOn) { speechSynthesis.cancel(); }
-    authed = false;
-    history = [];
-    messagesEl.innerHTML = "";
-    chatScreen.hidden = true;
-    loginScreen.hidden = false;
-    $("pass").value = "";
+    logoutMarker.set();
+    clearSession();
+    endServerSession();
   });
 
   // ---------- Shortcuts ----------
@@ -253,7 +335,9 @@
   // ---------- Send ----------
   async function send() {
     const text = input.value.trim();
-    if (!text || !authed) return;
+    if (!text || !authed || sending) return;
+    sending = true;
+    const started = generation;
     input.value = "";
     autoGrow();
     addMsg(text, "user");
@@ -262,12 +346,22 @@
     const typing = addTyping();
     sendBtn.disabled = true;
     try {
-      const res = await fetch("/api/chat", {
+      const context = history.slice(0, -1).slice(-6).map(turn => ({
+        role: turn.role,
+        content: Array.from(turn.content).slice(0, 4000).join(""),
+      }));
+      let body = JSON.stringify({ message: text, history: context });
+      while (context.length && new TextEncoder().encode(body).length > 32768) {
+        context.shift();
+        body = JSON.stringify({ message: text, history: context });
+      }
+      const res = await apiFetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: text, history }),
+        body,
       });
       const data = await res.json();
+      if (started !== generation || !authed) return;
       typing.remove();
       let reply;
       if (data.ok) {
@@ -283,13 +377,17 @@
       }
       speak(reply);
     } catch (err) {
+      if (started !== generation || !authed) return;
       typing.remove();
       const msg = "Couldn't reach the kitchen. Check your connection and try again.";
       addMsg(msg, "bot");
       speak(msg);
     } finally {
-      sendBtn.disabled = false;
-      input.focus();
+      if (started === generation && authed) {
+        sending = false;
+        sendBtn.disabled = false;
+        if ($("tab-chat").classList.contains("active")) input.focus();
+      }
     }
   }
 
@@ -343,9 +441,11 @@
   async function loadRecipes() {
     const el = $("recipes-list");
     el.innerHTML = '<div class="empty-note">Loading…</div>';
+    const started = generation;
     try {
-      const r = await fetch("/api/recipes");
+      const r = await apiFetch("/api/recipes");
       const d = await r.json();
+      if (started !== generation || !authed) return;
       if (!d.ok) throw new Error("bad response");
       const recs = d.recipes || [];
       if (!recs.length) {
@@ -364,6 +464,7 @@
         el.appendChild(row);
       });
     } catch (e) {
+      if (started !== generation || !authed) return;
       el.innerHTML = '<div class="empty-note">Couldn\u2019t load recipes. Try the Refresh button.</div>';
     }
   }
@@ -371,9 +472,11 @@
   async function loadShopping() {
     const el = $("shopping-list");
     el.innerHTML = '<div class="empty-note">Loading…</div>';
+    const started = generation;
     try {
-      const r = await fetch("/api/shopping-list");
+      const r = await apiFetch("/api/shopping-list");
       const d = await r.json();
+      if (started !== generation || !authed) return;
       if (!d.ok) throw new Error("bad");
       const items = d.items || [];
       if (!items.length) {
@@ -394,6 +497,7 @@
       total.innerHTML = '<div class="d-main">Total cost</div><div class="d-right"><div class="val">฿' + d.total_cost + '</div></div>';
       el.appendChild(total);
     } catch (e) {
+      if (started !== generation || !authed) return;
       el.innerHTML = '<div class="empty-note">Couldn\u2019t load the list. Try Refresh.</div>';
     }
   }
@@ -401,9 +505,11 @@
   async function loadProfit() {
     const sg = $("profit-summary");
     const sl = $("sales-log");
+    const started = generation;
     try {
-      const r = await fetch("/api/profit");
+      const r = await apiFetch("/api/profit");
       const d = await r.json();
+      if (started !== generation || !authed) return;
       if (!d.ok) throw new Error("bad");
       const profitCls = d.profit >= 0 ? "pgreen" : "pred";
       sg.innerHTML =
@@ -428,6 +534,7 @@
         });
       }
     } catch (e) {
+      if (started !== generation || !authed) return;
       sg.innerHTML = '<div class="empty-note">Couldn\u2019t load your numbers. Try Refresh.</div>';
       sl.innerHTML = "";
     }
@@ -441,4 +548,15 @@
 
   // Open the chat tab by default after login.
   showTab("chat");
+  const initialGeneration = generation;
+  if (logoutMarker.get()) {
+    endServerSession();
+  } else fetch("/api/session").then((response) => {
+    if (response.ok && initialGeneration === generation) openSession();
+  }).catch(() => {
+    if (initialGeneration === generation) {
+      loginError.textContent = "Couldn't check your session. Please sign in.";
+      loginError.hidden = false;
+    }
+  });
 })();

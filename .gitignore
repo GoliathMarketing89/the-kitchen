@@ -1,0 +1,12 @@
+# Generated Python bytecode
+__pycache__/
+*.py[cod]
+.venv/
+
+# Runtime credentials and tunnel configuration stay on the host.
+backend.env
+.env
+.env.*
+!.env.example
+.cloudflared/
+tunnel.log

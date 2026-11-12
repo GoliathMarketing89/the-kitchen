@@ -8,6 +8,10 @@ and calls the kitchen-manager Hermes profile on-demand for each message.
 Run:  python3 backend.py   (binds 0.0.0.0:8787)
 """
 import json
+import hashlib
+import hmac
+import secrets
+from urllib.parse import urlsplit
 import os
 import subprocess
 import time
@@ -27,10 +31,120 @@ STATE = BASE / "state.json"
 # --- config (overridable via env) ---
 PORT = int(os.environ.get("KITCHEN_PORT", "8787"))
 MONTHLY_BUDGET = float(os.environ.get("KITCHEN_BUDGET", "5.0"))  # USD/month
-OWNER_USER = os.environ.get("KITCHEN_USER", "mom")
-OWNER_PASS = os.environ.get("KITCHEN_PASS", "change-me-now")
+SESSION_COOKIE = "__Host-kitchen_session"
+SESSION_TTL = 28800
+MAX_SESSIONS = 256
+MAX_BODY = 32768
+MAX_LOGIN_BODY = 4096
+MAX_MESSAGE = 4000
+MAX_HISTORY_TURNS = 6
+MAX_HISTORY_CONTENT = 4000
+LOGIN_ATTEMPTS = 5
+LOGIN_WINDOW = 300
+MAX_LOGIN_CLIENTS = 1024
+app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
+_sessions = {}
+_login_attempts = {}
+_auth_lock = threading.Lock()
 
-app = FastAPI()
+
+def auth_config():
+    user = os.environ.get("KITCHEN_USER", "")
+    password_hash = os.environ.get("KITCHEN_PASSWORD_HASH", "")
+    origin = os.environ.get("KITCHEN_ORIGIN", "")
+    try:
+        url = urlsplit(origin)
+        user.encode("utf-8")
+        hostname, port = url.hostname, url.port
+        parts = password_hash.split("$")
+        iterations = int(parts[1])
+        salt, digest = bytes.fromhex(parts[2]), bytes.fromhex(parts[3])
+        valid = (len(parts) == 4 and parts[0] == "pbkdf2_sha256" and
+                 600000 <= iterations <= 2000000 and len(salt) >= 16 and len(digest) == 32 and
+                 url.scheme == "https" and bool(hostname) and not url.path and not url.query and
+                 not url.fragment and "@" not in url.netloc and origin == f"https://{url.netloc}" and
+                 not any(c.isspace() or ord(c) < 32 or ord(c) == 127 for c in origin) and
+                 bool(user) and len(user) <= 256)
+    except (ValueError, IndexError, UnicodeError):
+        valid = False
+    return (user, password_hash, origin) if valid else None
+
+
+def verify_password(password, password_hash):
+    _, iterations, salt, expected = password_hash.split("$")
+    actual = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), bytes.fromhex(salt), int(iterations))
+    return hmac.compare_digest(actual, bytes.fromhex(expected))
+
+
+def authenticated(token):
+    now = time.monotonic()
+    with _auth_lock:
+        entry = _sessions.get(token)
+        if entry is None:
+            return False
+        expiry, config = entry
+        if expiry <= now or config != auth_config():
+            _sessions.pop(token, None)
+            return False
+        return True
+
+
+def new_session():
+    now = time.monotonic()
+    with _auth_lock:
+        for token, (expiry, config) in list(_sessions.items()):
+            if expiry <= now or config != auth_config():
+                del _sessions[token]
+        if len(_sessions) >= MAX_SESSIONS:
+            return None
+        token = secrets.token_urlsafe(32)
+        _sessions[token] = (now + SESSION_TTL, auth_config())
+        return token
+
+
+def allow_login(client):
+    now = time.monotonic()
+    with _auth_lock:
+        for key, attempts in list(_login_attempts.items()):
+            recent = [t for t in attempts if now - t < LOGIN_WINDOW]
+            if recent:
+                _login_attempts[key] = recent
+            else:
+                del _login_attempts[key]
+        if client not in _login_attempts and len(_login_attempts) >= MAX_LOGIN_CLIENTS:
+            return False
+        attempts = _login_attempts.setdefault(client, [])
+        if len(attempts) >= LOGIN_ATTEMPTS:
+            return False
+        attempts.append(now)
+        return True
+
+
+@app.middleware("http")
+async def secure_api(request, call_next):
+    if not (request.url.path == "/api" or request.url.path.startswith("/api/")):
+        return await call_next(request)
+    config = auth_config()
+    if not config:
+        return JSONResponse({"ok": False, "error": "Authentication is not configured."}, status_code=503)
+    if request.method not in ("GET", "HEAD", "OPTIONS"):
+        if request.headers.get("origin") != config[2]:
+            return JSONResponse({"ok": False, "error": "Request origin rejected."}, status_code=403)
+        if request.headers.get("content-type", "").split(";", 1)[0].strip().lower() != "application/json":
+            return JSONResponse({"ok": False, "error": "JSON required."}, status_code=415)
+        limit = MAX_LOGIN_BODY if request.url.path == "/api/login" else MAX_BODY
+        chunks = []
+        size = 0
+        async for chunk in request.stream():
+            size += len(chunk)
+            if size > limit:
+                return JSONResponse({"ok": False, "error": "Request too large."}, status_code=413)
+            chunks.append(chunk)
+        body = b"".join(chunks)
+        request._body = body
+    if request.url.path != "/api/login" and not authenticated(request.cookies.get(SESSION_COOKIE)):
+        return JSONResponse({"ok": False, "error": "Please sign in."}, status_code=401)
+    return await call_next(request)
 app.mount("/static", StaticFiles(directory=str(STATIC)), name="static")
 
 _lock = threading.Lock()
@@ -129,14 +243,16 @@ def call_manager(message, history):
             cmd, capture_output=True, text=True, timeout=240,
             cwd=str(BASE),
         )
+        if proc.returncode != 0:
+            return "Sorry, the assistant could not complete that request. Please try again.", 0.0
         out = (proc.stdout or "").strip()
         clean = extract_reply(out)
         est = estimate_cost(len(prompt) / 4, len(clean) / 4)
         return clean, est
     except subprocess.TimeoutExpired:
         return "Sorry — that took too long. Could you try again?", 0.0
-    except Exception as e:
-        return f"Something went wrong on my end. Please try again. ({e})", 0.0
+    except Exception:
+        return "Something went wrong on my end. Please try again.", 0.0
 
 
 @app.get("/", response_class=FileResponse)
@@ -144,21 +260,72 @@ async def index():
     return FileResponse(STATIC / "index.html")
 
 
+@app.middleware("http")
+async def no_store_api(request, call_next):
+    response = await call_next(request)
+    if request.url.path == "/api" or request.url.path.startswith("/api/"):
+        response.headers["Cache-Control"] = "no-store"
+    return response
+
+
 @app.post("/api/login")
 async def login(req: Request):
-    body = await req.json()
-    if body.get("user") == OWNER_USER and body.get("pass") == OWNER_PASS:
-        return JSONResponse({"ok": True})
-    return JSONResponse({"ok": False, "error": "Wrong username or password."}, status_code=401)
+    client = req.client.host if req.client else "unknown"
+    if not allow_login(client):
+        return JSONResponse({"ok": False, "error": "Too many attempts. Please try later."}, status_code=429)
+    try:
+        body = await req.json()
+        user, password = body.get("user"), body.get("pass")
+        if not isinstance(user, str) or not isinstance(password, str) or len(user) > 256 or len(password) > 256:
+            raise ValueError()
+        user.encode("utf-8")
+        password.encode("utf-8")
+    except (ValueError, AttributeError, TypeError, UnicodeError, RecursionError):
+        return JSONResponse({"ok": False, "error": "Invalid login."}, status_code=400)
+    configured_user, password_hash, _ = auth_config()
+    valid_password = verify_password(password, password_hash)
+    if not hmac.compare_digest(user.encode("utf-8"), configured_user.encode("utf-8")) or not valid_password:
+        return JSONResponse({"ok": False, "error": "Wrong username or password."}, status_code=401)
+    with _auth_lock:
+        _sessions.pop(req.cookies.get(SESSION_COOKIE), None)
+    token = new_session()
+    if token is None:
+        return JSONResponse({"ok": False, "error": "Please try again later."}, status_code=503)
+    response = JSONResponse({"ok": True})
+    response.set_cookie(SESSION_COOKIE, token, max_age=SESSION_TTL, secure=True, httponly=True, samesite="strict", path="/")
+    return response
+
+
+@app.get("/api/session")
+async def session():
+    return JSONResponse({"ok": True})
+
+
+@app.post("/api/logout")
+async def logout(req: Request):
+    with _auth_lock:
+        _sessions.pop(req.cookies.get(SESSION_COOKIE), None)
+    response = JSONResponse({"ok": True})
+    response.delete_cookie(SESSION_COOKIE, path="/", secure=True, httponly=True, samesite="strict")
+    return response
 
 
 @app.post("/api/chat")
 async def chat(req: Request):
-    body = await req.json()
-    message = (body.get("message") or "").strip()
-    history = body.get("history") or []
-    if not message:
-        return JSONResponse({"ok": False, "error": "Empty message."})
+    try:
+        body = await req.json()
+        message, history = body.get("message"), body.get("history", [])
+        if (not isinstance(message, str) or not message.strip() or len(message) > MAX_MESSAGE or
+            not isinstance(history, list) or len(history) > MAX_HISTORY_TURNS or
+            any(not isinstance(t, dict) or t.get("role") not in ("user", "assistant") or
+                not isinstance(t.get("content"), str) or len(t["content"]) > MAX_HISTORY_CONTENT for t in history)):
+            raise ValueError()
+        message = message.strip()
+        message.encode("utf-8")
+        for turn in history:
+            turn["content"].encode("utf-8")
+    except (ValueError, AttributeError, TypeError, UnicodeError, RecursionError):
+        return JSONResponse({"ok": False, "error": "Invalid message."}, status_code=400)
 
     ok, spent, remaining = check_budget()
     if not ok:
@@ -206,4 +373,4 @@ async def api_profit():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=PORT)
+    uvicorn.run(app, host="0.0.0.0", port=PORT, proxy_headers=False)
