@@ -13,7 +13,7 @@ Reviewed locally on 2026-11-12. Terra implemented the interface, Luna expanded t
 
 ## Owner refinements before release
 
-The owner requested removal of the duplicate shortcut row, green and cream colors, and Poppins. The final design uses dark green controls with soft sage accents and self-hosted Poppins 400/600/700, bundled with its SIL Open Font License.
+The owner requested removal of the duplicate shortcut row, green and cream colors, and Poppins. The final design uses dark green controls with soft sage accents and self-hosted Poppins 400/600/700, bundled with its SIL Open Font License. The one tab group uses two columns on narrow phones so the larger font preserves whole-word labels. The final independent visual review scored these refinements 9/10. Commit `d73dbaa` is deployed; the live sign-in view and asset checks passed.
 
 ## Verification
 

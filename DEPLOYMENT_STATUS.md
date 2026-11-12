@@ -1,5 +1,15 @@
 # Kitchen authentication deployment status
 
+## Phone usability release
+
+Published and deployed commit `d73dbaa7b5fb412cbeaa15f9b22d981a1d5e31bd` on 12 November 2026 to `https://manager.freshlymade.net/`. This static-only release includes larger controls and text, labelled Message/Send actions, safer draft and dictation behavior, contextual help and clearer estimate wording. The owner's final refinements remove duplicate shortcuts and introduce a green-and-cream theme with self-hosted Poppins. A single tab group uses two columns on narrow phones to keep whole words readable.
+
+All 22 frontend tests pass; the 27 Python authentication/planning tests passed during review. The final independent visual review scored the revised screenshots 9/10. The live phone-sized sign-in page was checked in a browser and displays the green theme and Poppins without horizontal overflow.
+
+Only the three manager UI files and bundled font/license assets were transferred from the committed release. Prior assets were backed up privately, replacements were atomic, and no service restart was required. Origin HTML and every public asset match release checksums. Public HTML is identical after accounting for Cloudflare's existing analytics beacon injection; the first strict check rolled back safely before this was diagnosed. Private APIs still return 401 without a session, the public customer menu returns 200, and the backend and all four business-record checksums remain unchanged. Credentials, tunnel configuration and DNS were not modified.
+
+The owner can now try the release on her phone using her existing login. Actual phone keyboard, dictation permissions and screen-reader behavior remain acceptance checks; the deployment checks did not sign in or execute a live chat request.
+
 Verified 12 November 2026 at `https://manager.freshlymade.net`. The authentication source from commit `2a2027e6e1cd988a9444a7623b8f7afc575a8019` was deployed through a code-only transfer to the existing Hermes host. Deployed file checksums match the reviewed release; the host checkout was not updated with a blanket Git pull.
 
 ## Verified release behavior
