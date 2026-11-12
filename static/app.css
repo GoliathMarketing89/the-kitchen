@@ -1,24 +1,47 @@
+@font-face {
+  font-family: "Poppins";
+  src: url("/static/fonts/poppins-latin-400-normal.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Poppins";
+  src: url("/static/fonts/poppins-latin-600-normal.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Poppins";
+  src: url("/static/fonts/poppins-latin-700-normal.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+}
+
 :root {
   --cream: #faf6f0;
   --card: #ffffff;
   --ink: #2b2b2b;
-  --muted: #8a857d;
-  --accent: #b5651d;
-  --accent-soft: #f3e3d3;
-  --accent-deep: #8f4d12;
-  --green: #4a7c59;
+  --muted: #4b584d;
+  --accent: #286449;
+  --accent-soft: #e2ede0;
+  --accent-deep: #1c4935;
+  --green: #286449;
   --shadow: 0 8px 30px rgba(0,0,0,.08);
   --radius: 18px;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+button, input, textarea, summary { font-family: inherit; }
 
 html, body { height: 100%; }
 
 body {
   background: var(--cream);
   color: var(--ink);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-family: "Poppins", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   overflow: hidden;
 }
@@ -33,7 +56,7 @@ body {
   padding: 24px;
   background:
     radial-gradient(1200px 600px at 80% -10%, var(--accent-soft), transparent 60%),
-    radial-gradient(900px 500px at -10% 110%, #f0e6d8, transparent 55%),
+    radial-gradient(900px 500px at -10% 110%, #e6eee2, transparent 55%),
     var(--cream);
 }
 
@@ -61,7 +84,7 @@ body {
 #login-form label { font-size: .82rem; font-weight: 600; color: var(--muted); margin-top: 6px; }
 #login-form input {
   padding: 13px 14px;
-  border: 1.5px solid #e5ddd2;
+  border: 1.5px solid #d2ded1;
   border-radius: 12px;
   font-size: 1rem;
   background: #fff;
@@ -98,7 +121,7 @@ body {
   justify-content: space-between;
   padding: 14px 18px;
   background: var(--card);
-  border-bottom: 1px solid #eee6db;
+  border-bottom: 1px solid #e2e9de;
   box-shadow: 0 1px 8px rgba(0,0,0,.04);
   z-index: 5;
 }
@@ -119,7 +142,7 @@ body {
   animation: pulse 2s infinite;
 }
 .ghost-btn {
-  border: 1.5px solid #e5ddd2;
+  border: 1.5px solid #d2ded1;
   background: transparent;
   color: var(--muted);
   padding: 7px 14px;
@@ -129,31 +152,6 @@ body {
   transition: all .2s;
 }
 .ghost-btn:hover { border-color: var(--accent); color: var(--accent); }
-
-/* Shortcuts */
-.shortcuts {
-  display: flex;
-  gap: 8px;
-  padding: 12px 16px;
-  overflow-x: auto;
-  scrollbar-width: none;
-  background: var(--cream);
-}
-.shortcuts::-webkit-scrollbar { display: none; }
-.chip {
-  flex-shrink: 0;
-  padding: 9px 14px;
-  border-radius: 999px;
-  border: 1.5px solid #e5ddd2;
-  background: var(--card);
-  color: var(--ink);
-  font-size: .88rem;
-  cursor: pointer;
-  transition: all .2s;
-  white-space: nowrap;
-}
-.chip:hover { border-color: var(--accent); background: var(--accent-soft); transform: translateY(-1px); }
-.chip:active { transform: scale(.97); }
 
 /* Messages */
 .messages {
@@ -178,7 +176,7 @@ body {
 .msg.bot {
   align-self: flex-start;
   background: var(--card);
-  border: 1px solid #eee6db;
+  border: 1px solid #e2e9de;
   border-bottom-left-radius: 6px;
   box-shadow: 0 1px 4px rgba(0,0,0,.04);
 }
@@ -206,13 +204,13 @@ body {
 .composer {
   padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
   background: var(--card);
-  border-top: 1px solid #eee6db;
+  border-top: 1px solid #e2e9de;
 }
 .composer-row { display: flex; align-items: flex-end; gap: 10px; }
 .composer textarea {
   flex: 1;
   resize: none;
-  border: 1.5px solid #e5ddd2;
+  border: 1.5px solid #d2ded1;
   border-radius: 14px;
   padding: 12px 14px;
   font-size: 1rem;
@@ -244,7 +242,7 @@ body {
   width: 46px; height: 46px;
   border: none;
   border-radius: 50%;
-  background: #f1e9dd;
+  background: #e2ede0;
   color: var(--ink);
   font-size: 1.2rem;
   cursor: pointer;
@@ -266,7 +264,7 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  border: 1.5px solid #e5ddd2;
+  border: 1.5px solid #d2ded1;
   background: var(--card);
   color: var(--muted);
   padding: 8px 14px;
@@ -288,7 +286,7 @@ body {
   background: #eef5ef;
 }
 .voice-toggle.on .voice-dot { background: var(--green); animation: pulse 2s infinite; }
-.composer-hint { text-align: center; color: #6b6b6b; font-size: .8rem; margin-top: 8px; }
+.composer-hint { text-align: center; color: #4b584d; font-size: .8rem; margin-top: 8px; }
 
 /* ============ TABS & PANELS ============ */
 .tabbar {
@@ -296,7 +294,7 @@ body {
   gap: 6px;
   padding: 10px 16px;
   background: var(--card);
-  border-bottom: 1px solid #eee6db;
+  border-bottom: 1px solid #e2e9de;
   z-index: 4;
 }
 .tab {
@@ -334,7 +332,7 @@ body {
 }
 .data-row {
   background: var(--card);
-  border: 1px solid #eee6db;
+  border: 1px solid #e2e9de;
   border-radius: 14px;
   padding: 14px 16px;
   display: flex;
@@ -352,7 +350,7 @@ body {
 
 .profit-card {
   background: var(--card);
-  border: 1px solid #eee6db;
+  border: 1px solid #e2e9de;
   border-radius: 16px;
   padding: 18px;
   margin-bottom: 16px;
@@ -366,7 +364,7 @@ body {
 .profit-cell.pred .pvalue { color: #c0392b; }
 
 .soft-btn {
-  border: 1.5px solid #e5ddd2;
+  border: 1.5px solid #d2ded1;
   background: var(--card);
   color: var(--muted);
   padding: 9px 20px;
@@ -388,4 +386,99 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
   * { animation: none !important; transition: none !important; }
+}
+
+/* Phone-first manager: keep navigation and the composer reachable. */
+:root { font-size: 112.5%; --muted: #4b584d; --accent: #286449; --accent-deep: #1c4935; }
+body { font-size: 1rem; }
+.screen { height: 100vh; height: 100dvh; min-height: 0; }
+#login-screen { overflow-y: auto; justify-content: safe center; padding: max(20px, env(safe-area-inset-top)) 20px max(20px, env(safe-area-inset-bottom)); }
+.login-card { flex-shrink: 0; margin: auto; padding: 28px 24px; }
+#login-form label, .login-sub, .topbar-status, .composer-hint,
+.panel-head p, .data-row .d-sub, .empty-note, .error { font-size: 1rem; }
+#login-form input, #login-form button, .ghost-btn, .soft-btn,
+.tab, .voice-toggle, summary { min-height: 48px; font: inherit; }
+button, summary { touch-action: manipulation; }
+button:focus-visible, textarea:focus-visible, input:focus-visible, summary:focus-visible,
+[role="tabpanel"]:focus-visible { outline: 3px solid #1c4935; outline-offset: 2px; }
+.topbar, .tabbar, .composer { flex-shrink: 0; }
+.topbar { padding: max(8px, env(safe-area-inset-top)) 14px 8px; }
+.topbar-left { min-width: 0; }
+.topbar-name { font-size: 1rem; }
+.tabbar { gap: 3px; padding: 6px 8px; overflow-x: auto; }
+.tab { min-width: 0; padding: 6px; white-space: normal; line-height: 1.15; font-size: .9rem; }
+.tab-panel { min-height: 0; }
+#tab-chat.active { display: flex; flex-direction: column; overflow: hidden; padding: 0; }
+.messages { min-height: 0; padding: 12px; overflow-wrap: anywhere; }
+.msg { font-size: 1rem; max-width: 90%; overflow-wrap: anywhere; }
+.composer { padding: 8px 12px max(8px, env(safe-area-inset-bottom)); }
+.composer-row { gap: 8px; }
+.composer textarea { min-width: 0; min-height: 48px; font-size: 1rem; }
+.icon-btn, .send-btn { width: 48px; height: 48px; }
+.composer-hint { text-align: left; line-height: 1.3; margin-top: 6px; }
+.voice-row { text-align: left; margin-top: 4px; }
+.voice-toggle { font-size: .9rem; color: var(--ink); }
+.panel-head p { color: var(--muted); }
+.panel-head details { margin: 0 0 16px; color: var(--ink); }
+.panel-head summary { cursor: pointer; display: list-item; padding: 8px 0; font-weight: 600; }
+.panel-head details p { margin: 4px 0 12px; }
+.data-row { min-width: 0; }
+.data-row .d-main { min-width: 0; overflow-wrap: anywhere; }
+.data-row .d-right { white-space: normal; overflow-wrap: anywhere; }
+.profit-grid { grid-template-columns: 1fr; gap: 8px; }
+.profit-cell { text-align: left; }
+.profit-cell .plabel { font-size: 1rem; text-transform: none; letter-spacing: normal; }
+.profit-cell .pvalue { font-size: 1.2rem; }
+@media (prefers-reduced-motion: reduce) { .messages { scroll-behavior: auto; } }
+
+.topbar-actions { display: flex; flex-shrink: 0; gap: 6px; }
+.topbar-actions .ghost-btn { padding: 6px 10px; }
+.screen-help { flex-shrink: 0; max-height: 30vh; overflow-y: auto; padding: 10px 16px; background: #f1f6ed; border-bottom: 1px solid #cbdcc9; font-size: 1rem; }
+@media (max-width: 400px) { .topbar .avatar { display: none; } }
+
+
+.data-row .d-right { min-width: 11rem; }
+@media (max-width: 600px) {
+  .data-row { flex-direction: column; align-items: stretch; }
+  .data-row .d-right { min-width: 0; text-align: left; }
+}
+.panel-head .soft-btn { margin: 0 0 16px; }
+
+/* Keep labels separate when the browser's text size is enlarged. */
+#chat-screen { container-type: inline-size; }
+.topbar { flex-wrap: wrap; gap: 4px 8px; }
+.topbar-left { flex: 1 1 8rem; overflow-wrap: anywhere; }
+.topbar-actions { flex-wrap: wrap; }
+.tabbar { display: grid; grid-template-columns: repeat(auto-fit, minmax(4rem, 1fr)); overflow: visible; }
+.tab { min-width: 0; overflow-wrap: anywhere; }
+
+/* On very short screens the whole manager can scroll to reach its controls. */
+#chat-screen { overflow-y: auto; }
+.tab-panel { flex: 1 0 11rem; }
+@media (max-height: 550px) {
+  .topbar { padding-top: 4px; padding-bottom: 4px; }
+  .avatar, .topbar-status, .composer-hint { display: none; }
+  .voice-row { margin-top: 0; }
+  .login-card { margin: 0 auto; }
+}
+
+/* Keep the message and send actions explicit at every text size. */
+.composer-label { display: block; font-weight: 600; line-height: 1.2; margin-bottom: 4px; }
+.composer-row { display: grid; grid-template-columns: minmax(0, 1fr) 48px auto; align-items: end; }
+.composer textarea { width: 100%; min-height: max(48px, 2.6rem); }
+.send-btn { width: auto; min-width: 4rem; min-height: 48px; height: auto; padding: 8px 12px; border-radius: 12px; font: inherit; font-weight: 600; }
+@container (max-width: 11rem) {
+  .composer-row { grid-template-columns: minmax(0, 1fr) auto auto; }
+  .composer textarea { grid-column: 1 / -1; }
+  .composer .icon-btn { grid-column: 2; }
+}
+
+/* Keep navigation labels readable on narrow screens. */
+.tab { overflow-wrap: normal; word-break: normal; hyphens: none; }
+@media (max-width: 420px) {
+  .tabbar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+/* When large text makes two columns too narrow for a whole word, stack them. */
+@container (max-width: 10rem) {
+  .tabbar { grid-template-columns: 1fr; }
 }

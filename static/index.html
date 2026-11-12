@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>The Kitchen Manager</title>
-<link rel="stylesheet" href="/static/app.css?v=5">
+<link rel="stylesheet" href="/static/app.css?v=7">
 </head>
 <body>
   <!-- ============ LOGIN SCREEN ============ -->
@@ -30,73 +30,83 @@
       <div class="topbar-left">
         <div class="avatar">🍳</div>
         <div>
-          <div class="topbar-name">The Kitchen Manager</div>
-          <div class="topbar-status"><span class="dot"></span> here to help</div>
+          <div class="topbar-name">The Kitchen</div>
+          <div class="topbar-status"><span class="dot" aria-hidden="true"></span> <span id="connection-status" role="status">Checking connection…</span></div>
         </div>
       </div>
-      <button id="logout-btn" class="ghost-btn" title="Log out">Log out</button>
+      <div class="topbar-actions">
+        <button id="help-btn" class="ghost-btn" aria-controls="screen-help" aria-expanded="false">Help</button>
+        <button id="logout-btn" class="ghost-btn" title="Log out">Log out</button>
+      </div>
     </header>
 
+    <div id="screen-help" class="screen-help" role="region" aria-label="Help for this screen" hidden>
+      <p id="help-content"></p>
+      <p id="help-connection-status"></p>
+      <div class="voice-row">
+        <button id="voice-btn" class="voice-toggle" title="Read replies aloud" aria-pressed="false">
+          <span id="voice-dot" class="voice-dot" aria-hidden="true"></span>
+          <span id="voice-label">Read replies aloud: off</span>
+        </button>
+      </div>
+    </div>
+
     <!-- Tab bar -->
-    <nav class="tabbar" id="tabbar">
-      <button class="tab active" data-tab="chat">Chat</button>
-      <button class="tab" data-tab="recipes">Recipes</button>
-      <button class="tab" data-tab="shopping">Shopping list</button>
-      <button class="tab" data-tab="profit">Money</button>
+    <nav class="tabbar" id="tabbar" role="tablist" aria-label="Kitchen sections">
+      <button class="tab active" data-tab="chat" id="nav-chat" role="tab" aria-controls="tab-chat" aria-selected="true" tabindex="0">Chat</button>
+      <button class="tab" data-tab="recipes" id="nav-recipes" role="tab" aria-controls="tab-recipes" aria-selected="false" tabindex="-1">Recipes</button>
+      <button class="tab" data-tab="shopping" id="nav-shopping" role="tab" aria-controls="tab-shopping" aria-selected="false" tabindex="-1">Shopping list</button>
+      <button class="tab" data-tab="profit" id="nav-profit" role="tab" aria-controls="tab-profit" aria-selected="false" tabindex="-1">Money</button>
     </nav>
 
     <!-- ===== CHAT TAB ===== -->
-    <div id="tab-chat" class="tab-panel active">
-      <div id="shortcuts" class="shortcuts"></div>
-      <main id="messages" class="messages"></main>
+    <div id="tab-chat" class="tab-panel active" role="tabpanel" aria-labelledby="nav-chat" tabindex="0">
+      <main id="messages" class="messages" role="log" aria-label="Conversation" aria-live="polite" aria-relevant="additions"></main>
       <footer class="composer">
+        <label class="composer-label" for="input">Message</label>
         <div class="composer-row">
-          <textarea id="input" rows="1" placeholder="Tell me what you need…" enterkeyhint="send"></textarea>
+          <textarea id="input" aria-label="Message" rows="1" placeholder="Type…" enterkeyhint="send"></textarea>
           <button id="mic-btn" class="icon-btn" title="Tap to speak — I'll type it for you" aria-label="Speak">🎤</button>
-          <button id="send-btn" class="send-btn" aria-label="Send">➤</button>
+          <button id="send-btn" class="send-btn" aria-label="Send">Send</button>
         </div>
-        <div class="composer-hint">I can add dishes, change prices, plan costs, and more. Or use the tabs above.</div>
-        <div class="voice-row">
-          <button id="voice-btn" class="voice-toggle" title="Turn voice chat on/off">
-            <span id="voice-dot" class="voice-dot"></span>
-            <span id="voice-label">Turn on voice chat</span>
-          </button>
-        </div>
+        <div class="composer-hint">Dictate, review, then tap Send.</div>
       </footer>
     </div>
 
     <!-- ===== RECIPES TAB ===== -->
-    <div id="tab-recipes" class="tab-panel">
+    <div id="tab-recipes" class="tab-panel" role="tabpanel" aria-labelledby="nav-recipes" tabindex="0">
       <div class="panel-head">
         <h2>Costs &amp; prices</h2>
-        <p>What each dish costs to make, and what it should sell for. Every dish here matches one on your menu.</p>
+        <p>Recipe prices and estimated ingredient costs. Check your recipe records before relying on these figures.</p>
+        <button id="recipes-refresh" class="soft-btn">Refresh</button>
       </div>
-      <div id="recipes-list" class="data-list"></div>
-      <button id="recipes-refresh" class="soft-btn">Refresh</button>
+      <div id="recipes-list" class="data-list" aria-live="polite"></div>
     </div>
 
     <!-- ===== SHOPPING TAB ===== -->
-    <div id="tab-shopping" class="tab-panel">
+    <div id="tab-shopping" class="tab-panel" role="tabpanel" aria-labelledby="nav-shopping" tabindex="0">
       <div class="panel-head">
         <h2>Shopping list</h2>
-        <p>Everything you need for the dishes on this week's menu, all added up. Just tell me "make the list" or add a sale and I'll keep it current.</p>
+        <p>A starting list for one batch of each matched menu dish. Check quantities and units before shopping.</p>
+        <details><summary>How this list works</summary><p>Recipes are matched to menu dishes by name. Dishes without a matching recipe are omitted. Ingredients with the same name may be combined even if their units differ. Sales and stock do not change this list.</p></details>
+        <button id="shopping-refresh" class="soft-btn">Refresh</button>
       </div>
-      <div id="shopping-list" class="data-list"></div>
-      <button id="shopping-refresh" class="soft-btn">Refresh</button>
+      <div id="shopping-list" class="data-list" aria-live="polite"></div>
     </div>
 
     <!-- ===== PROFIT TAB ===== -->
-    <div id="tab-profit" class="tab-panel">
+    <div id="tab-profit" class="tab-panel" role="tabpanel" aria-labelledby="nav-profit" tabindex="0">
       <div class="panel-head">
         <h2>Money</h2>
-        <p>What you've sold, what it cost, and what you've kept. Tell me "I sold 3 lasagnas today" and I'll log it.</p>
+        <p>Estimates for all recorded sales. Check missing costs before relying on totals.</p>
+        <details><summary>How these estimates work</summary><p>Totals use current recipe prices and ingredient costs where a recipe matches. Sales without matching recipes have no ingredient cost included. Other expenses are not included, so figures may be incomplete and are not net profit.</p></details>
+        <button id="profit-refresh" class="soft-btn">Refresh</button>
       </div>
-      <div id="profit-summary" class="profit-card"></div>
+      <div id="profit-summary" class="profit-card" aria-live="polite"></div>
       <div id="sales-log" class="data-list"></div>
-      <button id="profit-refresh" class="soft-btn">Refresh</button>
     </div>
   </div>
 
-  <script src="/static/app.js?v=9"></script>
+  <script src="/static/app.js?v=11"></script>
 </body>
 </html>

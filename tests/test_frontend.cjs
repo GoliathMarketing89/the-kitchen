@@ -5,6 +5,8 @@ const vm = require("node:vm");
 const test = require("node:test");
 
 const appSource = fs.readFileSync(path.join(__dirname, "..", "static", "app.js"), "utf8");
+const htmlSource = fs.readFileSync(path.join(__dirname, "..", "static", "index.html"), "utf8");
+const cssSource = fs.readFileSync(path.join(__dirname, "..", "static", "app.css"), "utf8");
 
 class ClassList {
   constructor() { this.values = new Set(); }
@@ -41,13 +43,16 @@ class Element {
   appendChild(child) { child.parent = this; this.children.push(child); return child; }
   remove() { if (this.parent) this.parent.children = this.parent.children.filter(child => child !== this); }
   setAttribute(name, value) { this.attributes[name] = value; }
-  focus() {}
+  getAttribute(name) { return Object.hasOwn(this.attributes, name) ? this.attributes[name] : null; }
+  focus() { this.focused = true; }
+  click() { return this.listeners.click && this.listeners.click(); }
 }
 
 function deferred() {
   let resolve;
-  const promise = new Promise(done => { resolve = done; });
-  return { promise, resolve };
+  let reject;
+  const promise = new Promise((done, fail) => { resolve = done; reject = fail; });
+  return { promise, resolve, reject };
 }
 
 function response(status, data) {
@@ -68,7 +73,7 @@ function isWellFormedUnicode(value) {
   return true;
 }
 
-function createHarness({ initialSession = 401, chatReplies = [] } = {}) {
+function createHarness({ initialSession = 401, chatReplies = [], dataReplies = {}, speechSupport = false } = {}) {
   const elements = new Map();
   const getElement = id => {
     if (!elements.has(id)) elements.set(id, new Element(id));
@@ -79,10 +84,28 @@ function createHarness({ initialSession = 401, chatReplies = [] } = {}) {
     tab.dataset.tab = name;
     return tab;
   });
+  getElement("screen-help").hidden = true;
+  getElement("chat-screen").hidden = true;
   const requests = [];
   const sessionStorage = new Map();
+  const recognitionInstances = [];
+  const speechOutput = [];
+  const windowListeners = {};
+  const speechSynthesis = {
+    cancel() {},
+    getVoices() { return []; },
+    speak(value) { speechOutput.push(value); },
+  };
+  class FakeRecognition {
+    constructor() { this.started = 0; this.aborted = 0; recognitionInstances.push(this); }
+    start() { this.started++; }
+    stop() {}
+    abort() { this.aborted++; }
+  }
   const fetch = (url, options = {}) => {
     requests.push({ url, options });
+    const queued = dataReplies[url] && dataReplies[url].shift();
+    if (queued) return queued.promise || queued;
     if (url === "/api/session") {
       return initialSession.promise || Promise.resolve(response(initialSession, { ok: initialSession === 200 }));
     }
@@ -103,9 +126,14 @@ function createHarness({ initialSession = 401, chatReplies = [] } = {}) {
     querySelectorAll: selector => selector === ".tab" ? tabs : [],
     createElement: tag => new Element(tag),
   };
+  const window = {
+    addEventListener(name, listener) { windowListeners[name] = listener; },
+    ...(speechSupport ? { SpeechRecognition: FakeRecognition, speechSynthesis } : {}),
+  };
   const context = {
     document,
-    window: {},
+    window,
+    navigator: { onLine: true },
     fetch,
     sessionStorage: {
       getItem: key => sessionStorage.get(key) ?? null,
@@ -113,6 +141,10 @@ function createHarness({ initialSession = 401, chatReplies = [] } = {}) {
       removeItem: key => sessionStorage.delete(key),
     },
     TextEncoder,
+    ...(speechSupport ? {
+      speechSynthesis,
+      SpeechSynthesisUtterance: class { constructor(text) { this.text = text; } },
+    } : {}),
     setTimeout,
     console: { log() {}, error() {} },
   };
@@ -133,8 +165,29 @@ function createHarness({ initialSession = 401, chatReplies = [] } = {}) {
     getElement("input").value = value;
     return getElement("send-btn").listeners.click();
   };
-  return { elements, getElement, requests, flush, login, send };
+  return { elements, getElement, tabs, requests, recognitionInstances, speechOutput, windowListeners, flush, login, send, context };
 }
+
+test("HTML exposes four labelled tabs, linked panels, and a labelled composer", () => {
+  assert.match(htmlSource, /<nav[^>]*role="tablist"[^>]*aria-label="Kitchen sections"/);
+  const tabs = [...htmlSource.matchAll(/<button[^>]*role="tab"[^>]*aria-controls="tab-[^"]+"/g)];
+  assert.equal(tabs.length, 4);
+  assert.equal((htmlSource.match(/role="tabpanel"/g) || []).length, 4);
+  assert.match(htmlSource, /<label[^>]*for="input"[^>]*>Message<\/label>/);
+  assert.match(htmlSource, /<textarea[^>]*id="input"[^>]*aria-label="Message"[^>]*placeholder="Type…"/);
+  assert.match(htmlSource, /<button[^>]*id="send-btn"[^>]*aria-label="Send">Send<\/button>/);
+  assert.match(htmlSource, /id="messages"[^>]*role="log"[^>]*aria-label="Conversation"[^>]*aria-live="polite"/);
+});
+
+test("phone layout reserves screen height, safe areas, and reachable touch controls", () => {
+  assert.match(cssSource, /height:\s*100dvh/);
+  assert.match(cssSource, /env\(safe-area-inset-top\)/);
+  assert.match(cssSource, /env\(safe-area-inset-bottom\)/);
+  assert.match(cssSource, /\.tab, \.voice-toggle, summary \{ min-height: 48px/);
+  assert.match(cssSource, /\.composer textarea \{ min-width: 0; min-height: 48px/);
+  assert.match(cssSource, /@media \(max-height: 550px\)/);
+  assert.match(cssSource, /min-height: 0/);
+});
 
 test("restores a valid server session into the chat screen", async () => {
   const h = createHarness({ initialSession: 200 });
@@ -230,4 +283,206 @@ test("outgoing emoji history remains valid JSON and below the UTF-8 body limit",
     assert.ok(Array.from(turn.content).length <= 4000);
     assert.equal(isWellFormedUnicode(turn.content), true);
   }
+});
+
+test("keyboard arrows, Home and End move the selected tab and focus", async () => {
+  const h = createHarness();
+  await h.login();
+  const move = (tab, key) => tab.listeners.keydown({ key, preventDefault() {} });
+
+  move(h.tabs[0], "ArrowRight");
+  assert.equal(h.tabs[1].getAttribute("aria-selected"), "true");
+  assert.equal(h.tabs[1].tabIndex, 0);
+  assert.equal(h.tabs[1].focused, true);
+  assert.equal(h.getElement("tab-recipes").classList.contains("active"), true);
+
+  move(h.tabs[1], "End");
+  assert.equal(h.tabs[3].getAttribute("aria-selected"), "true");
+  move(h.tabs[3], "Home");
+  assert.equal(h.tabs[0].getAttribute("aria-selected"), "true");
+});
+
+test("one navigation row keeps the four tabs and never sends chat commands", async () => {
+  assert.equal((htmlSource.match(/role="tablist"/g) || []).length, 1);
+  assert.doesNotMatch(htmlSource, /id="shortcuts"/);
+  const h = createHarness();
+  await h.login();
+  assert.equal(h.tabs.length, 4);
+  h.tabs[2].click();
+  await h.flush();
+  assert.equal(h.getElement("tab-shopping").classList.contains("active"), true);
+  assert.equal(h.requests.some(request => request.url === "/api/chat"), false);
+});
+
+test("composer draft survives tab changes", async () => {
+  const h = createHarness();
+  await h.login();
+  h.getElement("input").value = "my unsent draft";
+  h.tabs[1].click();
+  await h.flush();
+  h.tabs[0].click();
+  assert.equal(h.getElement("input").value, "my unsent draft");
+});
+
+test("dictation remains a draft when reply speech is enabled", async () => {
+  const h = createHarness({ speechSupport: true });
+  await h.login();
+  assert.equal(h.speechOutput.length, 0);
+  h.getElement("voice-btn").click();
+  assert.equal(h.getElement("voice-btn").getAttribute("aria-pressed"), "true");
+  h.getElement("mic-btn").click();
+  const recognition = h.recognitionInstances[0];
+  recognition.onresult({ results: [[{ transcript: "add two cakes" }]] });
+
+  assert.equal(h.getElement("input").value, "add two cakes");
+  assert.equal(h.requests.some(request => request.url === "/api/chat"), false);
+  assert.equal(h.speechOutput.length, 0);
+
+  await h.send("add two cakes");
+  assert.equal(h.requests.some(request => request.url === "/api/chat"), true);
+  assert.equal(h.speechOutput.length, 1);
+});
+
+test("offline send keeps the draft and never queues or sends it", async () => {
+  const h = createHarness();
+  await h.login();
+  h.context.navigator.onLine = false;
+  h.windowListeners.offline();
+  h.getElement("input").value = "sale to enter later";
+  const historyBefore = h.getElement("messages").children.length;
+
+  await h.getElement("send-btn").click();
+
+  assert.equal(h.getElement("input").value, "sale to enter later");
+  assert.equal(h.getElement("connection-status").textContent, "Offline");
+  assert.match(h.getElement("help-connection-status").textContent, /reconnect before sending/i);
+  assert.equal(h.getElement("messages").children.length, historyBefore + 1);
+  assert.equal(h.requests.some(request => request.url === "/api/chat"), false);
+});
+
+test("stale microphone recognition cannot type into a later session", async () => {
+  const h = createHarness({ speechSupport: true });
+  await h.login();
+  h.getElement("mic-btn").click();
+  const oldRecognition = h.recognitionInstances[0];
+  h.getElement("logout-btn").click();
+  await h.flush();
+  await h.login();
+  oldRecognition.onresult({ results: [[{ transcript: "old session words" }]] });
+
+  assert.equal(h.getElement("input").value, "");
+  assert.equal(oldRecognition.aborted, 1);
+});
+
+test("uncertain chat failure restores the draft and warns before retry", async () => {
+  const failedRequest = deferred();
+  const h = createHarness({ chatReplies: [failedRequest.promise] });
+  await h.login();
+  const send = h.send("record a sale");
+  failedRequest.reject(new Error("connection dropped"));
+  await send;
+
+  assert.equal(h.getElement("input").value, "record a sale");
+  assert.ok(h.getElement("messages").children.some(node =>
+    node.textContent.includes("may still have been processed") && node.textContent.includes("Check your records")));
+  assert.equal(h.requests.filter(request => request.url === "/api/chat").length, 1);
+});
+
+test("chat failure does not overwrite a newer draft typed while waiting", async () => {
+  const pending = deferred();
+  const h = createHarness({ chatReplies: [pending] });
+  await h.login();
+  const send = h.send("first request");
+  await h.flush();
+  h.getElement("input").value = "newer draft";
+  pending.resolve(response(200, { ok: false, error: "uncertain" }));
+  await send;
+
+  assert.equal(h.getElement("input").value, "newer draft");
+  assert.ok(h.getElement("messages").children.some(node => node.textContent.includes("Check your records")));
+});
+
+test("successful HTTP responses with agent timeout/error text are still unconfirmed", async () => {
+  for (const agentReply of [
+    "Sorry — that took too long. Could you try again?",
+    "Sorry, the assistant could not complete that request. Please try again.",
+    "Something went wrong on my end. Please try again.",
+    "",
+  ]) {
+    const h = createHarness({ chatReplies: [response(200, { ok: true, reply: agentReply })] });
+    await h.login();
+    await h.send("change an item");
+    assert.equal(h.getElement("input").value, "change an item");
+    assert.ok(h.getElement("messages").children.some(node =>
+      node.textContent.includes("could not be confirmed") && node.textContent.includes("Check your records")));
+  }
+});
+
+test("only the newest refresh response replaces a data panel", async () => {
+  const older = deferred();
+  const newer = deferred();
+  const h = createHarness({ dataReplies: { "/api/recipes": [older, newer] } });
+  await h.login();
+  h.tabs[1].click();
+  h.getElement("recipes-refresh").click();
+  newer.resolve(response(200, { ok: true, recipes: [{ name: "new", price: 44, ingredient_cost: 10 }] }));
+  await h.flush();
+  older.resolve(response(200, { ok: true, recipes: [{ name: "old", price: 11, ingredient_cost: 5 }] }));
+  await h.flush();
+
+  const rows = h.getElement("recipes-list").children.map(row => row.innerHTML).join(" ");
+  assert.match(rows, /44/);
+  assert.doesNotMatch(rows, /11/);
+});
+
+test("missing recipe price and cost render as incomplete", async () => {
+  const h = createHarness({ dataReplies: {
+    "/api/recipes": [response(200, { ok: true, recipes: [
+      { name: "unpriced", price: 0, ingredient_cost: 0 },
+      { name: "unknown cost", price: null, ingredient_cost: null },
+      { name: "undefined price", ingredient_cost: 10 },
+    ] })],
+  } });
+  await h.login();
+  h.tabs[1].click();
+  await h.flush();
+  const rows = h.getElement("recipes-list").children.map(row => row.innerHTML).join(" ");
+  assert.match(rows, /Price not set/);
+  assert.match(rows, /Cost needs checking/);
+});
+
+test("screen help follows the selected tab and updates its expanded state", async () => {
+  const h = createHarness();
+  await h.login();
+  const help = h.getElement("screen-help");
+  const button = h.getElement("help-btn");
+
+  h.tabs[2].click();
+  assert.match(h.getElement("help-content").textContent, /starting list.*quantities and units/i);
+  button.click();
+  assert.equal(help.hidden, false);
+  assert.equal(button.getAttribute("aria-expanded"), "true");
+  button.click();
+  assert.equal(help.hidden, true);
+  assert.equal(button.getAttribute("aria-expanded"), "false");
+});
+
+test("unsupported speech voice and denied/no-speech microphone paths stay understandable", async () => {
+  const unsupported = createHarness();
+  await unsupported.login();
+  unsupported.getElement("mic-btn").click();
+  assert.ok(unsupported.getElement("messages").children.some(node => node.textContent.includes("doesn't support voice input")));
+
+  const h = createHarness({ speechSupport: true });
+  await h.login();
+  const recognitionMessageCount = h.getElement("messages").children.length;
+  h.getElement("mic-btn").click();
+  h.recognitionInstances[0].onerror({ error: "not-allowed" });
+  assert.ok(h.getElement("messages").children.some(node => node.textContent.includes("Microphone access was denied")));
+  assert.notEqual(h.getElement("messages").children.length, recognitionMessageCount);
+
+  h.getElement("mic-btn").click();
+  const beforeAbort = h.getElement("messages").children.length;
+  h.recognitionInstances[0].onerror({ error: "aborted" });
+  assert.equal(h.getElement("messages").children.length, beforeAbort);
 });
