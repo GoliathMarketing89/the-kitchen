@@ -23,6 +23,7 @@ from fastapi.responses import JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 
 import planning
+import credential_store
 
 BASE = Path(__file__).resolve().parent
 STATIC = BASE / "static"
@@ -42,15 +43,25 @@ MAX_HISTORY_CONTENT = 4000
 LOGIN_ATTEMPTS = 5
 LOGIN_WINDOW = 300
 MAX_LOGIN_CLIENTS = 1024
+COMMON_PASSWORDS = frozenset({
+    "passwordpassword", "password123456789", "123456789012345",
+    "12345678901234567890", "qwertyuiopasdfgh",
+})
 app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
 _sessions = {}
 _login_attempts = {}
-_auth_lock = threading.Lock()
+_auth_lock = threading.RLock()
+_password_attempts = []
 
 
 def auth_config():
     user = os.environ.get("KITCHEN_USER", "")
-    password_hash = os.environ.get("KITCHEN_PASSWORD_HASH", "")
+    try:
+        password_hash = (credential_store.read_verifier(os.environ["KITCHEN_CREDENTIAL_STORE"], BASE)
+                         if "KITCHEN_CREDENTIAL_STORE" in os.environ
+                         else os.environ.get("KITCHEN_PASSWORD_HASH", ""))
+    except credential_store.StoreError:
+        return None
     origin = os.environ.get("KITCHEN_ORIGIN", "")
     try:
         url = urlsplit(origin)
@@ -89,16 +100,18 @@ def authenticated(token):
         return True
 
 
-def new_session():
+def new_session(expected_config):
     now = time.monotonic()
     with _auth_lock:
+        if auth_config() != expected_config:
+            return None
         for token, (expiry, config) in list(_sessions.items()):
-            if expiry <= now or config != auth_config():
+            if expiry <= now or config != expected_config:
                 del _sessions[token]
         if len(_sessions) >= MAX_SESSIONS:
             return None
         token = secrets.token_urlsafe(32)
-        _sessions[token] = (now + SESSION_TTL, auth_config())
+        _sessions[token] = (now + SESSION_TTL, expected_config)
         return token
 
 
@@ -282,15 +295,19 @@ async def login(req: Request):
         password.encode("utf-8")
     except (ValueError, AttributeError, TypeError, UnicodeError, RecursionError):
         return JSONResponse({"ok": False, "error": "Invalid login."}, status_code=400)
-    configured_user, password_hash, _ = auth_config()
-    valid_password = verify_password(password, password_hash)
-    if not hmac.compare_digest(user.encode("utf-8"), configured_user.encode("utf-8")) or not valid_password:
-        return JSONResponse({"ok": False, "error": "Wrong username or password."}, status_code=401)
+    # Serialize verification and session issuance with credential changes.
     with _auth_lock:
+        config = auth_config()
+        if not config:
+            return JSONResponse({"ok": False, "error": "Authentication is not configured."}, status_code=503)
+        configured_user, password_hash, _ = config
+        valid_password = verify_password(password, password_hash)
+        if not hmac.compare_digest(user.encode("utf-8"), configured_user.encode("utf-8")) or not valid_password:
+            return JSONResponse({"ok": False, "error": "Wrong username or password."}, status_code=401)
         _sessions.pop(req.cookies.get(SESSION_COOKIE), None)
-    token = new_session()
-    if token is None:
-        return JSONResponse({"ok": False, "error": "Please try again later."}, status_code=503)
+        token = new_session(config)
+        if token is None:
+            return JSONResponse({"ok": False, "error": "Please try again later."}, status_code=503)
     response = JSONResponse({"ok": True})
     response.set_cookie(SESSION_COOKIE, token, max_age=SESSION_TTL, secure=True, httponly=True, samesite="strict", path="/")
     return response
@@ -305,6 +322,59 @@ async def session():
 async def logout(req: Request):
     with _auth_lock:
         _sessions.pop(req.cookies.get(SESSION_COOKIE), None)
+    response = JSONResponse({"ok": True})
+    response.delete_cookie(SESSION_COOKIE, path="/", secure=True, httponly=True, samesite="strict")
+    return response
+
+
+@app.post("/api/change-password")
+async def change_password(req: Request):
+    if "KITCHEN_CREDENTIAL_STORE" not in os.environ:
+        return JSONResponse({"ok": False, "error": "Password change is not configured."}, status_code=503)
+    try:
+        body = await req.json()
+        current, new, confirm = (body.get("current_password"), body.get("new_password"), body.get("confirm_password"))
+        if any(not isinstance(v, str) or len(v) > 256 for v in (current, new, confirm)):
+            raise ValueError()
+        for value in (current, new, confirm):
+            value.encode("utf-8")
+        if len(new) < 15 or new != confirm:
+            return JSONResponse({"ok": False, "error": "Use at least 15 characters and make sure both new passwords match."}, status_code=400)
+        if new == current:
+            return JSONResponse({"ok": False, "error": "Choose a different new password."}, status_code=400)
+        if new.casefold() in COMMON_PASSWORDS or len(set(new)) == 1:
+            return JSONResponse({"ok": False, "error": "Choose a less predictable password or a longer phrase."}, status_code=400)
+    except (ValueError, AttributeError, TypeError, UnicodeError, RecursionError):
+        return JSONResponse({"ok": False, "error": "Invalid password fields."}, status_code=400)
+    token = req.cookies.get(SESSION_COOKIE)
+    with _auth_lock:
+        config = auth_config()
+        if not config:
+            return JSONResponse({"ok": False, "error": "Authentication is not configured."}, status_code=503)
+        if not authenticated(token):
+            return JSONResponse({"ok": False, "error": "Please sign in."}, status_code=401)
+        now = time.monotonic()
+        _password_attempts[:] = [t for t in _password_attempts if now - t < LOGIN_WINDOW]
+        if len(_password_attempts) >= LOGIN_ATTEMPTS:
+            return JSONResponse({"ok": False, "error": "Too many attempts. Please try later."}, status_code=429)
+        if not verify_password(current, config[1]):
+            _password_attempts.append(now)
+            return JSONResponse({"ok": False, "error": "Current password is incorrect."}, status_code=400)
+        salt = secrets.token_bytes(16)
+        digest = hashlib.pbkdf2_hmac("sha256", new.encode("utf-8"), salt, 600000)
+        verifier = f"pbkdf2_sha256$600000${salt.hex()}${digest.hex()}"
+        if auth_config() != config or not authenticated(token):
+            return JSONResponse({"ok": False, "error": "Please sign in."}, status_code=401)
+        try:
+            credential_store.replace_verifier(os.environ["KITCHEN_CREDENTIAL_STORE"], BASE, verifier)
+        except credential_store.StoreWriteUncertain:
+            _sessions.clear()
+            response = JSONResponse({"ok": False, "error": "Password update could not be confirmed. Please sign in again."}, status_code=503)
+            response.delete_cookie(SESSION_COOKIE, path="/", secure=True, httponly=True, samesite="strict")
+            return response
+        except credential_store.StoreError:
+            return JSONResponse({"ok": False, "error": "Password change is unavailable."}, status_code=503)
+        _sessions.clear()
     response = JSONResponse({"ok": True})
     response.delete_cookie(SESSION_COOKIE, path="/", secure=True, httponly=True, samesite="strict")
     return response

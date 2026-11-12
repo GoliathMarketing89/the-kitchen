@@ -182,6 +182,90 @@
   voiceBtn.addEventListener("click", toggleVoice);
 
   // ---------- Login ----------
+  const passwordForm = $("password-form");
+  const passwordScreen = $("password-screen");
+  const passwordOpen = $("change-password-open");
+  let passwordPending = false;
+
+  function closePasswordForm() {
+    $("current-password").value = "";
+    $("new-password").value = "";
+    $("confirm-password").value = "";
+    $("password-error").textContent = "";
+    $("password-error").hidden = true;
+    passwordForm.hidden = true;
+    passwordScreen.hidden = true;
+    if (authed) chatScreen.hidden = false;
+    passwordOpen.setAttribute("aria-expanded", "false");
+  }
+
+  passwordOpen.addEventListener("click", () => {
+    if (passwordPending) return;
+    if (!passwordForm.hidden) { closePasswordForm(); return; }
+    chatScreen.hidden = true;
+    passwordScreen.hidden = false;
+    passwordForm.hidden = false;
+    passwordOpen.setAttribute("aria-expanded", "true");
+    $("current-password").focus();
+  });
+  $("password-cancel").addEventListener("click", () => {
+    closePasswordForm();
+    passwordOpen.focus();
+  });
+  passwordForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    if (!authed || passwordPending) return;
+    const current = $("current-password").value;
+    const next = $("new-password").value;
+    const confirm = $("confirm-password").value;
+    const error = $("password-error");
+    error.hidden = true;
+    if (Array.from(next).length < 15 || next !== confirm || next === current) {
+      error.textContent = "Use at least 15 characters, choose a different password, and make sure both new passwords match.";
+      error.hidden = false;
+      return;
+    }
+    const started = generation;
+    passwordPending = true;
+    $("password-save").disabled = true;
+    $("password-cancel").disabled = true;
+    passwordOpen.disabled = true;
+    try {
+      const response = await apiFetch("/api/change-password", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ current_password: current, new_password: next, confirm_password: confirm }),
+      });
+      const data = await response.json();
+      if (started !== generation || !authed) return;
+      if (response.ok && data.ok) {
+        clearSession();
+        loginError.textContent = "Password changed. Sign in with your new password.";
+        loginError.hidden = false;
+      } else if (response.status >= 500 && data.error !== "Password change is not configured.") {
+        logoutMarker.set();
+        clearSession();
+        loginError.textContent = "The password change could not be confirmed. Try signing in with your new password, or your previous password if it did not change.";
+        loginError.hidden = false;
+      } else {
+        error.textContent = data.error || "Password could not be changed. Please try again.";
+        error.hidden = false;
+      }
+    } catch (_) {
+      if (started === generation && authed) {
+        logoutMarker.set();
+        clearSession();
+        loginError.textContent = "The password change could not be confirmed. Try signing in with your new password, or your previous password if it did not change.";
+        loginError.hidden = false;
+      }
+    } finally {
+      passwordPending = false;
+      $("password-save").disabled = false;
+      $("password-cancel").disabled = false;
+      passwordOpen.disabled = false;
+      $("login-btn").disabled = authPending;
+    }
+  });
+
   function openSession() {
     generation++;
     logoutMarker.clear();
@@ -195,6 +279,7 @@
   }
 
   function clearSession() {
+    closePasswordForm();
     generation++;
     authed = false;
     sending = false;
@@ -221,12 +306,13 @@
     helpButton.setAttribute("aria-expanded", "false");
     chatScreen.hidden = true;
     loginScreen.hidden = false;
+    $("login-btn").disabled = passwordPending || authPending;
     $("pass").value = "";
   }
 
   loginForm.addEventListener("submit", async (e) => {
     e.preventDefault();
-    if (authPending) return;
+    if (authPending || passwordPending) return;
     authPending = true;
     const started = ++generation;
     const btn = $("login-btn");
@@ -252,7 +338,7 @@
       }
     } finally {
       authPending = false;
-      btn.disabled = false;
+      btn.disabled = passwordPending;
       btn.textContent = "Open my kitchen";
     }
   });
@@ -282,7 +368,7 @@
       }
     } finally {
       authPending = false;
-      btn.disabled = false;
+      btn.disabled = passwordPending;
     }
   }
 
@@ -434,6 +520,7 @@
   const helpButton = $("help-btn");
   helpButton.addEventListener("click", () => {
     help.hidden = !help.hidden;
+    if (help.hidden) closePasswordForm();
     helpButton.setAttribute("aria-expanded", String(!help.hidden));
   });
 

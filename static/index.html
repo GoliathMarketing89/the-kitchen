@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>The Kitchen Manager</title>
-<link rel="stylesheet" href="/static/app.css?v=7">
+<link rel="stylesheet" href="/static/app.css?v=8">
 </head>
 <body>
   <!-- ============ LOGIN SCREEN ============ -->
@@ -13,7 +13,7 @@
       <div class="logo-mark">🍳</div>
       <h1>The Kitchen</h1>
       <p class="login-sub">Mom’s shop. Mom’s way.</p>
-      <form id="login-form" autocomplete="off">
+      <form id="login-form" method="post" action="/api/login" autocomplete="off">
         <label for="user">Username</label>
         <input id="user" name="user" type="text" autocomplete="username" placeholder="Your username" required>
         <label for="pass">Password</label>
@@ -23,6 +23,27 @@
       </form>
     </div>
   </div>
+
+  <!-- Password settings -->
+  <main id="password-screen" class="screen" hidden>
+    <div class="password-card">
+      <form id="password-form" class="password-form" method="post" action="/api/change-password" hidden>
+        <h1>Change password</h1>
+        <p>Use at least 15 characters. You will need to sign in again.</p>
+        <label for="current-password">Current password</label>
+        <input id="current-password" type="password" autocomplete="current-password" required>
+        <label for="new-password">New password</label>
+        <input id="new-password" type="password" autocomplete="new-password" required>
+        <label for="confirm-password">Confirm new password</label>
+        <input id="confirm-password" type="password" autocomplete="new-password" required>
+        <p id="password-error" class="error" role="alert" hidden></p>
+        <div class="password-actions">
+          <button id="password-save" type="submit" class="soft-btn">Change password</button>
+          <button id="password-cancel" type="button" class="soft-btn">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </main>
 
   <!-- ============ MANAGER ============ -->
   <div id="chat-screen" class="screen" hidden>
@@ -43,6 +64,7 @@
     <div id="screen-help" class="screen-help" role="region" aria-label="Help for this screen" hidden>
       <p id="help-content"></p>
       <p id="help-connection-status"></p>
+      <button id="change-password-open" class="soft-btn" type="button" aria-controls="password-screen" aria-expanded="false">Change password</button>
       <div class="voice-row">
         <button id="voice-btn" class="voice-toggle" title="Read replies aloud" aria-pressed="false">
           <span id="voice-dot" class="voice-dot" aria-hidden="true"></span>
@@ -107,6 +129,6 @@
     </div>
   </div>
 
-  <script src="/static/app.js?v=11"></script>
+  <script src="/static/app.js?v=12"></script>
 </body>
 </html>

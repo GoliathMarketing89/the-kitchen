@@ -73,7 +73,7 @@ function isWellFormedUnicode(value) {
   return true;
 }
 
-function createHarness({ initialSession = 401, chatReplies = [], dataReplies = {}, speechSupport = false } = {}) {
+function createHarness({ initialSession = 401, chatReplies = [], dataReplies = {}, passwordReplies = [], speechSupport = false } = {}) {
   const elements = new Map();
   const getElement = id => {
     if (!elements.has(id)) elements.set(id, new Element(id));
@@ -86,6 +86,8 @@ function createHarness({ initialSession = 401, chatReplies = [], dataReplies = {
   });
   getElement("screen-help").hidden = true;
   getElement("chat-screen").hidden = true;
+  getElement("password-screen").hidden = true;
+  getElement("password-form").hidden = true;
   const requests = [];
   const sessionStorage = new Map();
   const recognitionInstances = [];
@@ -111,6 +113,11 @@ function createHarness({ initialSession = 401, chatReplies = [], dataReplies = {
     }
     if (url === "/api/login") return Promise.resolve(response(200, { ok: true }));
     if (url === "/api/logout") return Promise.resolve(response(200, { ok: true }));
+    if (url === "/api/change-password") {
+      const next = passwordReplies.shift();
+      if (next) return next.promise || next;
+      return Promise.resolve(response(200, { ok: true }));
+    }
     if (url === "/api/chat") {
       const next = chatReplies.shift();
       if (next) return next.promise || next;
@@ -165,7 +172,12 @@ function createHarness({ initialSession = 401, chatReplies = [], dataReplies = {
     getElement("input").value = value;
     return getElement("send-btn").listeners.click();
   };
-  return { elements, getElement, tabs, requests, recognitionInstances, speechOutput, windowListeners, flush, login, send, context };
+  const openPasswordForm = () => {
+    if (getElement("screen-help").hidden) getElement("help-btn").click();
+    getElement("change-password-open").click();
+  };
+  const submitPasswordForm = () => getElement("password-form").listeners.submit({ preventDefault() {} });
+  return { elements, getElement, tabs, requests, recognitionInstances, speechOutput, windowListeners, storage: sessionStorage, flush, login, send, openPasswordForm, submitPasswordForm, context };
 }
 
 test("HTML exposes four labelled tabs, linked panels, and a labelled composer", () => {
@@ -177,6 +189,10 @@ test("HTML exposes four labelled tabs, linked panels, and a labelled composer", 
   assert.match(htmlSource, /<textarea[^>]*id="input"[^>]*aria-label="Message"[^>]*placeholder="Type…"/);
   assert.match(htmlSource, /<button[^>]*id="send-btn"[^>]*aria-label="Send">Send<\/button>/);
   assert.match(htmlSource, /id="messages"[^>]*role="log"[^>]*aria-label="Conversation"[^>]*aria-live="polite"/);
+  assert.match(htmlSource, /<form id="password-form"[^>]*method="post"[^>]*action="\/api\/change-password"/);
+  assert.match(htmlSource, /id="current-password"[^>]*autocomplete="current-password"/);
+  assert.match(htmlSource, /id="new-password"[^>]*autocomplete="new-password"/);
+  assert.match(htmlSource, /id="confirm-password"[^>]*autocomplete="new-password"/);
 });
 
 test("phone layout reserves screen height, safe areas, and reachable touch controls", () => {
@@ -485,4 +501,155 @@ test("unsupported speech voice and denied/no-speech microphone paths stay unders
   const beforeAbort = h.getElement("messages").children.length;
   h.recognitionInstances[0].onerror({ error: "aborted" });
   assert.equal(h.getElement("messages").children.length, beforeAbort);
+});
+
+test("password settings open as a separate screen and Cancel clears every secret", async () => {
+  const h = createHarness();
+  await h.login();
+  h.openPasswordForm();
+  assert.equal(h.getElement("chat-screen").hidden, true);
+  assert.equal(h.getElement("password-screen").hidden, false);
+  h.getElement("current-password").value = "synthetic current secret";
+  h.getElement("new-password").value = "synthetic new secret phrase";
+  h.getElement("confirm-password").value = "synthetic new secret phrase";
+  h.getElement("password-cancel").click();
+
+  assert.equal(h.getElement("password-screen").hidden, true);
+  assert.equal(h.getElement("chat-screen").hidden, false);
+  for (const id of ["current-password", "new-password", "confirm-password"]) {
+    assert.equal(h.getElement(id).value, "");
+  }
+});
+
+test("password form validates shape, surfaces server weak-password feedback, and accepts a Unicode phrase", async () => {
+  const h = createHarness({
+    passwordReplies: [
+      response(400, { ok: false, error: "Choose a less predictable password or a longer phrase." }),
+      response(200, { ok: true }),
+    ],
+  });
+  await h.login();
+  h.openPasswordForm();
+  const currentPassword = h.getElement("current-password");
+  const newPassword = h.getElement("new-password");
+  const confirmPassword = h.getElement("confirm-password");
+  currentPassword.value = "old synthetic password";
+  newPassword.value = "short";
+  confirmPassword.value = "short";
+  await h.submitPasswordForm();
+  assert.equal(h.requests.some(request => request.url === "/api/change-password"), false);
+
+  newPassword.value = "passwordpassword";
+  confirmPassword.value = "passwordpassword";
+  await h.submitPasswordForm();
+  assert.equal(h.requests.filter(request => request.url === "/api/change-password").length, 1);
+  assert.match(h.getElement("password-error").textContent, /less predictable/i);
+  assert.equal(h.getElement("password-screen").hidden, false);
+
+  const phrase = "🥐".repeat(15);
+  currentPassword.value = "old synthetic password";
+  newPassword.value = phrase;
+  confirmPassword.value = phrase;
+  await h.submitPasswordForm();
+  assert.equal(h.requests.filter(request => request.url === "/api/change-password").length, 2);
+  assert.equal(h.getElement("login-screen").hidden, false);
+  assert.match(h.getElement("login-error").textContent, /sign in with your new password/i);
+});
+
+test("password cancel, success, expiry and logout clear secret fields", async () => {
+  const cancelled = createHarness();
+  await cancelled.login();
+  cancelled.openPasswordForm();
+  for (const id of ["current-password", "new-password", "confirm-password"]) cancelled.getElement(id).value = "cancelled synthetic secret";
+  cancelled.getElement("password-cancel").click();
+  cancelled.getElement("logout-btn").click();
+  await cancelled.flush();
+  for (const id of ["current-password", "new-password", "confirm-password"]) assert.equal(cancelled.getElement(id).value, "");
+
+  const successful = createHarness();
+  await successful.login();
+  successful.openPasswordForm();
+  successful.getElement("current-password").value = "old synthetic secret";
+  successful.getElement("new-password").value = "A long synthetic new phrase";
+  successful.getElement("confirm-password").value = "A long synthetic new phrase";
+  await successful.submitPasswordForm();
+  assert.equal(successful.getElement("password-screen").hidden, true);
+  assert.equal(successful.getElement("chat-screen").hidden, true);
+  assert.match(successful.getElement("login-error").textContent, /Password changed\. Sign in with your new password\./);
+  for (const id of ["current-password", "new-password", "confirm-password"]) assert.equal(successful.getElement(id).value, "");
+
+  const expired = createHarness({ chatReplies: [response(401, { ok: false })] });
+  await expired.login();
+  expired.openPasswordForm();
+  for (const id of ["current-password", "new-password", "confirm-password"]) expired.getElement(id).value = "expired synthetic secret";
+  await expired.send("check session");
+  assert.equal(expired.getElement("login-screen").hidden, false);
+  for (const id of ["current-password", "new-password", "confirm-password"]) assert.equal(expired.getElement(id).value, "");
+});
+
+test("unknown password-change result signs out without repopulating secrets or replaying", async () => {
+  const h = createHarness({ passwordReplies: [response(503, { ok: false, error: "Password update could not be confirmed." })] });
+  await h.login();
+  h.openPasswordForm();
+  h.getElement("current-password").value = "old synthetic secret";
+  h.getElement("new-password").value = "A long synthetic new phrase";
+  h.getElement("confirm-password").value = "A long synthetic new phrase";
+  await h.submitPasswordForm();
+
+  assert.equal(h.requests.filter(request => request.url === "/api/change-password").length, 1);
+  assert.match(h.getElement("login-error").textContent, /could not be confirmed.*signing in/i);
+  assert.equal(h.getElement("login-screen").hidden, false);
+  for (const id of ["current-password", "new-password", "confirm-password"]) assert.equal(h.getElement(id).value, "");
+});
+
+test("duplicate password submits send once, pending changes block re-login, and stale success is ignored", async () => {
+  const recipesUnauthorized = deferred();
+  const changeReply = deferred();
+  const h = createHarness({
+    dataReplies: { "/api/recipes": [recipesUnauthorized] },
+    passwordReplies: [changeReply],
+  });
+  await h.login();
+  h.tabs[1].click();
+  await h.flush();
+  h.openPasswordForm();
+  h.getElement("current-password").value = "old synthetic secret";
+  h.getElement("new-password").value = "Old request phrase 2032 🥐";
+  h.getElement("confirm-password").value = "Old request phrase 2032 🥐";
+  const first = h.submitPasswordForm();
+  const duplicate = h.submitPasswordForm();
+  assert.equal(h.requests.filter(request => request.url === "/api/change-password").length, 1);
+
+  recipesUnauthorized.resolve(response(401, { ok: false }));
+  await h.flush();
+  assert.equal(h.getElement("login-screen").hidden, false);
+  assert.equal(h.getElement("login-btn").disabled, true);
+  const loginRequests = h.requests.filter(request => request.url === "/api/login").length;
+  await h.login();
+  assert.equal(h.requests.filter(request => request.url === "/api/login").length, loginRequests);
+
+  changeReply.resolve(response(200, { ok: true }));
+  await Promise.all([first, duplicate]);
+  assert.equal(h.getElement("login-screen").hidden, false);
+  assert.doesNotMatch(h.getElement("login-error").textContent, /Password changed/);
+
+  await h.login();
+  assert.equal(h.getElement("chat-screen").hidden, false);
+});
+
+test("password values never enter chat history or browser storage", async () => {
+  const h = createHarness();
+  await h.login();
+  h.openPasswordForm();
+  h.getElement("current-password").value = "synthetic old-secret-keep-out";
+  h.getElement("new-password").value = "synthetic new-secret-keep-out";
+  h.getElement("confirm-password").value = "synthetic new-secret-keep-out";
+
+  await h.send("ordinary message");
+  const chatRequest = h.requests.find(request => request.url === "/api/chat");
+  assert.ok(chatRequest);
+  assert.doesNotMatch(chatRequest.options.body, /old-secret|new-secret-keep-out/);
+  for (const storedValue of h.storage.values()) {
+    assert.doesNotMatch(storedValue, /old-secret|new-secret-keep-out/);
+  }
 });

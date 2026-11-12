@@ -482,3 +482,18 @@ button:focus-visible, textarea:focus-visible, input:focus-visible, summary:focus
 @container (max-width: 10rem) {
   .tabbar { grid-template-columns: 1fr; }
 }
+
+.password-form { display: flex; flex-direction: column; gap: 8px; padding: 12px 0; }
+.password-form label { font-weight: 600; }
+.password-form input { width: 100%; min-height: 48px; padding: 10px 12px; border: 1.5px solid #d2ded1; border-radius: 10px; font: inherit; }
+.password-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+#change-password-open { margin: 8px 0; }
+
+#password-screen { overflow-y: auto; align-items: center; padding: max(20px, env(safe-area-inset-top)) 20px max(20px, env(safe-area-inset-bottom)); }
+.password-card { width: 100%; max-width: 34rem; margin: auto; padding: 20px 24px; border-radius: 20px; background: var(--card); box-shadow: var(--shadow); }
+.password-form h1 { font-size: 1.4rem; }
+.password-form p { color: var(--muted); }
+.password-form .error { color: #a52b20; }
+@media (max-height: 550px) { .password-card { margin: 0 auto; } }
+#password-save { background: var(--accent); border-color: var(--accent); color: #fff; }
+#password-save:hover { background: var(--accent-deep); border-color: var(--accent-deep); color: #fff; }

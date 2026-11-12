@@ -167,6 +167,15 @@ class PreviewHandler(BaseHTTPRequestHandler):
                 type(self).authenticated = True
                 return self._json(200, {"ok": True}, {"Set-Cookie": "__Host-kitchen_session=preview; Secure; HttpOnly; SameSite=Strict; Path=/"})
             return self._json(400, {"ok": False, "error": "Invalid preview login"})
+        if path == "/api/change-password":
+            if not type(self).authenticated:
+                return self._json(401, {"ok": False})
+            if not isinstance(body, dict) or any(not isinstance(body.get(key), str) for key in (
+                "current_password", "new_password", "confirm_password",
+            )):
+                return self._json(400, {"ok": False, "error": "Invalid preview password form"})
+            type(self).authenticated = False
+            return self._json(200, {"ok": True}, {"Set-Cookie": "__Host-kitchen_session=; Max-Age=0; Secure; HttpOnly; SameSite=Strict; Path=/"})
         if path == "/api/logout":
             type(self).authenticated = False
             return self._json(200, {"ok": True}, {"Set-Cookie": "__Host-kitchen_session=; Max-Age=0; Secure; HttpOnly; SameSite=Strict; Path=/"})
